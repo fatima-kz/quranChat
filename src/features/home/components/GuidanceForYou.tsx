@@ -5,43 +5,26 @@ import { CText } from '@/components/ui';
 import { useThemeColors } from '@/hooks/useTheme';
 import { useThemeStore } from '@/store/theme.store';
 import { useAskQuestion } from '@/features/home/hooks/useAskQuestion';
-
-const ITEMS = [
-  {
-    icon: 'bulb-outline' as const,
-    question: "What does the Qur'an say about finding inner peace?",
-    label: "What does the Qur'an say about finding inner peace?",
-    color: 'primary' as const,
-  },
-  {
-    icon: 'heart-outline' as const,
-    question: 'Understanding patience and gratitude in the Qur\'an',
-    label: 'Understanding patience and gratitude',
-    color: 'surface' as const,
-  },
-  {
-    icon: 'people-outline' as const,
-    question: 'What are the rights of parents and kin in Islam?',
-    label: 'Rights of parents and kin',
-    color: 'surface' as const,
-  },
-];
+import { useGuidance } from '@/features/home/hooks/useGuidance';
+import { useAuthStore } from '@/store/auth.store';
 
 export function GuidanceForYou() {
   const c = useThemeColors();
   const isDark = useThemeStore((s) => s.resolved) === 'dark';
   const ask = useAskQuestion();
+  const profile = useAuthStore((s) => s.profile);
+  const { data: items, isLoading } = useGuidance(profile?.topics ?? null);
 
   return (
     <View style={styles.container}>
       <CText variant="h2" style={{ color: c.text, marginBottom: 16 }}>Guidance For You</CText>
 
       <View style={styles.grid}>
-        {ITEMS.map((item) => {
-          const isPrimary = item.color === 'primary';
+        {(items ?? []).map((item, i) => {
+          const isPrimary = i === 0;
           return (
             <View
-              key={item.label}
+              key={item.question}
               style={{
                 borderRadius: 18,
                 backgroundColor: isPrimary ? c.primaryDeep : (isDark ? c.surfaceMuted : '#E6F4EE'),
@@ -71,7 +54,11 @@ export function GuidanceForYou() {
                       backgroundColor: isPrimary ? 'rgba(255,255,255,0.18)' : (isDark ? c.surface : '#C8E6D8'),
                     }}
                   >
-                    <Ionicons name={item.icon} size={22} color={isPrimary ? '#FFFFFF' : c.primary} />
+                    {isLoading ? (
+                      <Ionicons name="hourglass-outline" size={20} color={isPrimary ? '#FFFFFF' : c.primary} />
+                    ) : (
+                      <Ionicons name={item.icon} size={22} color={isPrimary ? '#FFFFFF' : c.primary} />
+                    )}
                   </View>
                   <Ionicons
                     name="arrow-forward"

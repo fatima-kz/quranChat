@@ -64,6 +64,10 @@ export const DEFAULT_SUGGESTED_QUESTIONS = [
   'Help me understand this verse',
 ];
 
+function getDayOfYear(): number {
+  return Math.floor((Date.now() - new Date(new Date().getFullYear(), 0, 0).getTime()) / 86400000);
+}
+
 const TOPIC_QUESTIONS: Record<string, string[]> = {
   prayer: ['How can I improve my prayers (salah)?', 'What does the Qur\'an say about prayer?'],
   patience: ['What does Islam say about patience?', 'Which verses help with being patient?'],
@@ -78,13 +82,19 @@ const TOPIC_QUESTIONS: Record<string, string[]> = {
 export function getPersonalizedQuestions(topics: string[] | null | undefined): string[] {
   if (!topics || topics.length === 0) return DEFAULT_SUGGESTED_QUESTIONS;
 
+  const day = getDayOfYear();
   const picked: string[] = [];
-  const shuffled = [...topics].sort(() => Math.random() - 0.5);
 
-  for (const t of shuffled) {
+  const topicOrder = [...topics].sort((a, b) => {
+    const ha = (a.charCodeAt(0) * day) % topics.length;
+    const hb = (b.charCodeAt(0) * day) % topics.length;
+    return ha - hb;
+  });
+
+  for (const t of topicOrder) {
     const qs = TOPIC_QUESTIONS[t];
     if (qs) {
-      picked.push(qs[Math.floor(Math.random() * qs.length)]);
+      picked.push(qs[day % qs.length]);
     }
     if (picked.length >= 3) break;
   }
