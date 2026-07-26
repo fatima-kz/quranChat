@@ -11,7 +11,7 @@ import {
   Alert,
   ActivityIndicator,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useForm, Controller } from 'react-hook-form';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -54,6 +54,7 @@ export default function ProfileScreen() {
   const c = useThemeColors();
   const haptic = useHaptics();
   const isDark = useThemeStore((s) => s.resolved) === 'dark';
+  const insets = useSafeAreaInsets();
 
   const profile = useAuthStore((s) => s.profile);
   const [modalVisible, setModalVisible] = useState(false);
@@ -286,7 +287,7 @@ export default function ProfileScreen() {
 
       {/* Edit Profile Modal */}
       <Modal visible={modalVisible} animationType="slide" transparent={false} onRequestClose={closeModal}>
-        <SafeAreaView style={[styles.modalRoot, { backgroundColor: c.background }]}>
+        <View style={[styles.modalRoot, { backgroundColor: c.background, paddingTop: insets.top }]}>
           <View style={styles.modalBar}>
             <Pressable onPress={closeModal} hitSlop={12}>
               <Ionicons name="chevron-down" size={26} color={c.text} />
@@ -463,7 +464,7 @@ export default function ProfileScreen() {
               </TouchableOpacity>
             </View>
           </ScrollView>
-        </SafeAreaView>
+        </View>
       </Modal>
     </Screen>
   );
