@@ -1,56 +1,131 @@
-# Welcome to your Expo app 👋
+# Quran Chat
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+A premium, minimalist Qur'an companion app. Chat with an AI assistant that grounds its answers in the Qur'an — with Surah/Ayah citations, daily reflections, and a calm, iOS-style interface with dark mode.
 
-## Get started
+> MVP built with Expo (SDK 57), Expo Router, TypeScript, NativeWind, Reanimated, Supabase, TanStack Query, Zustand, and an OpenAI-backed serverless route.
 
-1. Install dependencies
+## App flow
 
-   ```bash
-   npm install
-   ```
-
-2. Start the app
-
-   ```bash
-   npx expo start
-   ```
-
-In the output, you'll find options to open the app in a
-
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
-
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
-
-## Get a fresh project
-
-When you're ready, run:
-
-```bash
-npm run reset-project
+```
+Splash → Onboarding (3 screens) → Sign In → Profile Setup → Home ⇄ Chat ⇄ Profile
 ```
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+Bottom navigation: **Home · Chat · Profile**.
 
-### Other setup steps
+## Tech stack
 
-- To set up ESLint for linting, run `npx expo lint`, or follow our guide on ["Using ESLint and Prettier"](https://docs.expo.dev/guides/using-eslint/)
-- If you'd like to set up unit testing, follow our guide on ["Unit Testing with Jest"](https://docs.expo.dev/develop/unit-testing/)
-- Learn more about the TypeScript setup in this template in our guide on ["Using TypeScript"](https://docs.expo.dev/guides/typescript/)
+**Frontend** — React Native (Expo SDK 57), Expo Router, TypeScript, NativeWind (Tailwind), Reanimated, expo-linear-gradient, expo-blur, react-hook-form, Zustand, TanStack Query.
 
-## Learn more
+**Backend** — Supabase (Auth, PostgreSQL, Row Level Security). See `supabase/schema.sql`.
 
-To learn more about developing your project with Expo, look at the following resources:
+**AI** — OpenAI (GPT-4o-mini by default) via a Vercel serverless route at `api/chat.js`. The system prompt keeps answers grounded in the Qur'an, cites only confident references, never fabricates verses, and directs jurisprudence questions to qualified scholars.
 
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
+## Project structure
 
-## Join the community
+Feature-oriented architecture — `src/app` contains **only routes** (thin re-exports); the real app lives in `src/features`.
 
-Join our community of developers creating universal apps.
+```
+src/
+  app/                  Expo Router only (routes + group layouts)
+    (onboarding)/       welcome · interests · loading
+    (auth)/             login
+    (setup)/            profile
+    (tabs)/             home · chat · profile
+    chat/[id].tsx       specific conversation
+  features/             screens + components + hooks + api per domain
+  components/{ui,layout} shared, reusable primitives
+  lib/                  supabase · queryClient · storage
+  services/             auth · chat · ai (call APIs; fall back to local storage)
+  store/                zustand stores (auth · theme · chat · onboarding)
+  theme/                colors · typography · spacing · radius · shadows
+  hooks/                useTheme · useHaptics
+  utils/ · constants/ · config/ · types/
+api/chat.js             Vercel serverless AI route
+supabase/schema.sql     tables + RLS policies
+```
 
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+## Getting started
+
+### 1. Install dependencies
+
+```bash
+npm install
+```
+
+### 2. Environment variables
+
+Copy the example and fill in your values:
+
+```bash
+cp .env.example .env
+```
+
+```env
+# Client (bundled into the app — prefix with EXPO_PUBLIC_)
+EXPO_PUBLIC_SUPABASE_URL=https://<project>.supabase.co
+EXPO_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
+EXPO_PUBLIC_API_URL=http://localhost:3000   # your Vercel/local API URL
+
+# Server only (never exposed to the client)
+OPENAI_API_KEY=sk-...
+OPENAI_MODEL=gpt-4o-mini
+```
+
+### 3. Database (Supabase)
+
+1. Create a new Supabase project.
+2. Open the SQL editor and run `supabase/schema.sql`. This creates `profiles`, `conversations`, `messages`, `bookmarks` with Row Level Security and a trigger that auto-creates a profile on signup.
+3. (Optional) Enable Google as an auth provider in Supabase → Auth → Providers.
+
+### 4. Run the app
+
+```bash
+npm start          # then press i / a / w
+```
+
+> **Demo mode:** If Supabase env vars are empty, the app still runs end-to-end — email auth, profile, conversations, and messages are persisted locally via AsyncStorage, and the Google button is hidden. This makes it easy to explore the UI without any backend. The AI chat still calls the server route, so point `EXPO_PUBLIC_API_URL` at a running API (see below) or the chat will show a friendly error.
+
+## The AI server (Vercel)
+
+`api/chat.js` is a Vercel serverless function. Install its deps and run locally, or deploy to Vercel.
+
+```bash
+cd api && npm install && cd ..
+# local dev (Node) — run any tiny server, or use Vercel CLI:
+npx vercel dev
+```
+
+Set `OPENAI_API_KEY` (and optionally `OPENAI_MODEL`) in your Vercel project environment variables. The route is `POST /api/chat` with body `{ messages: [{ role, content }] }` and returns `{ content }`. Citations are parsed on the client from the trailing `**Qur'an <s>:<a>**` line the prompt instructs the model to emit.
+
+## The system prompt
+
+```
+You are Quran Chat, an AI assistant helping users understand the Qur'an.
+
+Guidelines:
+- Base answers on the Qur'an.
+- If referencing a verse, only cite it if you are confident it is correct.
+- If you are unsure of an exact verse reference, say so rather than guessing.
+- Do not fabricate Surah or Ayah numbers.
+- Do not issue fatwas or definitive religious rulings.
+- Encourage consulting qualified scholars for complex jurisprudence.
+- Be compassionate, clear, and concise.
+```
+
+## Scripts
+
+```bash
+npm start        # expo start
+npm run ios      # expo start --ios
+npm run android  # expo start --android
+npm run web      # expo start --web
+npm run lint     # eslint (flat config, expo rules)
+npx tsc --noEmit # typecheck
+```
+
+## Notes
+
+- Dark mode toggle (Profile) uses NativeWind's color-scheme override, persisted across launches.
+- Haptic feedback is wired through taps via `useHaptics`.
+- Skeleton loaders appear for the daily ayah and conversation lists.
+- Reanimated powers the splash fade, onboarding transitions, typing dots, and home content reveal.
