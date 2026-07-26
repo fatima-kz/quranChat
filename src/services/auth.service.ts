@@ -80,7 +80,6 @@ export async function signOut(): Promise<void> {
     await supabase.auth.signOut();
   }
   await storage.remove(LOCAL_SESSION_KEY);
-  await storage.remove(storage.KEYS.onboardingDone);
   useAuthStore.getState().clear();
 }
 

@@ -29,6 +29,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             .eq('id', data.session.user.id)
             .single();
           if (active) setProfile(prof as any);
+          if (active && prof && (prof as any).full_name) {
+            useOnboardingStore.getState().setDone(true);
+          }
         }
         const { data: sub } = supabase.auth.onAuthStateChange(async (_event, session) => {
           if (!active) return;
@@ -40,6 +43,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
               .eq('id', session.user.id)
               .single();
             if (active) setProfile(prof as any);
+            if (active && prof && (prof as any).full_name) {
+              useOnboardingStore.getState().setDone(true);
+            }
           } else {
             setProfile(null);
           }
@@ -55,6 +61,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (active) {
         setSession(local.session);
         setProfile(local.profile);
+        if (local.profile?.full_name) {
+          useOnboardingStore.getState().setDone(true);
+        }
         setReady(true);
       }
     }

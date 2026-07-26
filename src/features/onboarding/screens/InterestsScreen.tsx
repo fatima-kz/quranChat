@@ -6,6 +6,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 
 import { useThemeColors } from '@/hooks/useTheme';
+import { useThemeStore } from '@/store/theme.store';
 import { useHaptics } from '@/hooks/useHaptics';
 import { useOnboardingStore } from '@/store/onboarding.store';
 import { ONBOARDING_TOPICS } from '@/constants/prompts';
@@ -23,6 +24,7 @@ const TOPIC_ICONS: Record<string, keyof typeof Ionicons.glyphMap> = {
 
 export default function InterestsScreen() {
   const c = useThemeColors();
+  const isDark = useThemeStore((s) => s.resolved) === 'dark';
   const haptic = useHaptics();
   const insets = useSafeAreaInsets();
   const topics = useOnboardingStore((s) => s.answers.topics);
@@ -62,10 +64,10 @@ export default function InterestsScreen() {
         {/* Title & options */}
         <Animated.View style={[animStyle, { paddingHorizontal: 24, paddingTop: 24, paddingBottom: 16 }]}>
           <View style={{ gap: 8, marginBottom: 22 }}>
-            <Text style={{ fontSize: 28, lineHeight: 36, fontWeight: '700', color: '#1F2937' }}>
+            <Text style={{ fontSize: 28, lineHeight: 36, fontWeight: '700', color: c.text }}>
               What would you like to focus on?
             </Text>
-            <Text style={{ fontSize: 16, lineHeight: 22, color: '#6B7280' }}>
+            <Text style={{ fontSize: 16, lineHeight: 22, color: c.textMuted }}>
               Select all that apply.
             </Text>
           </View>
@@ -80,8 +82,8 @@ export default function InterestsScreen() {
                   style={{
                     borderRadius: 16,
                     borderWidth: 1.5,
-                    borderColor: selected ? '#064E3B' : '#E5E5E5',
-                    backgroundColor: selected ? '#E6F4EE' : '#FFFFFF',
+                    borderColor: selected ? c.primary : c.border,
+                    backgroundColor: selected ? (isDark ? c.surfaceMuted : '#E6F4EE') : c.surface,
                     overflow: 'hidden',
                   }}
                 >
@@ -105,18 +107,18 @@ export default function InterestsScreen() {
                         borderRadius: 20,
                         alignItems: 'center',
                         justifyContent: 'center',
-                        backgroundColor: selected ? '#C8E6D8' : '#F3F4F6',
+                        backgroundColor: selected ? (isDark ? c.primaryDeep : '#C8E6D8') : c.surfaceMuted,
                         marginRight: 14,
                       }}
                     >
-                      <Ionicons name={iconName} size={20} color={selected ? '#064E3B' : '#6B7280'} />
+                      <Ionicons name={iconName} size={20} color={selected ? (isDark ? '#FFFFFF' : '#064E3B') : c.textMuted} />
                     </View>
                     <Text
                       style={{
                         flex: 1,
                         fontSize: 16,
                         fontWeight: '600',
-                        color: '#1F2937',
+                        color: c.text,
                       }}
                     >
                       {t.label}
@@ -127,8 +129,8 @@ export default function InterestsScreen() {
                         height: 24,
                         borderRadius: 6,
                         borderWidth: 2,
-                        borderColor: selected ? '#064E3B' : '#D1D5DB',
-                        backgroundColor: selected ? '#064E3B' : 'transparent',
+                        borderColor: selected ? c.primary : c.border,
+                        backgroundColor: selected ? c.primary : 'transparent',
                         alignItems: 'center',
                         justifyContent: 'center',
                       }}
@@ -153,7 +155,7 @@ export default function InterestsScreen() {
             width: '100%',
             height: 56,
             borderRadius: 14,
-            backgroundColor: '#064E3B',
+            backgroundColor: c.primaryDeep,
             overflow: 'hidden',
             shadowColor: '#000',
             shadowOffset: { width: 0, height: 4 },

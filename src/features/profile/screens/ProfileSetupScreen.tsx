@@ -142,7 +142,7 @@ export default function ProfileSetupScreen() {
               <Ionicons name="chevron-back" size={26} color={c.text} />
             </Pressable>
             <View style={{ flex: 1, height: 6, borderRadius: 3, marginHorizontal: 16, overflow: 'hidden', backgroundColor: c.border }}>
-              <View style={{ height: '100%', borderRadius: 3, backgroundColor: '#064E3B', width: '75%' }} />
+              <View style={{ height: '100%', borderRadius: 3, backgroundColor: c.primaryDeep, width: '75%' }} />
             </View>
             <View style={{ width: 44 }} />
           </View>
@@ -261,7 +261,7 @@ export default function ProfileSetupScreen() {
                   width: '100%',
                   height: 56,
                   borderRadius: 14,
-                  backgroundColor: '#064E3B',
+                  backgroundColor: c.primaryDeep,
                   overflow: 'hidden',
                   shadowColor: '#000',
                   shadowOffset: { width: 0, height: 4 },

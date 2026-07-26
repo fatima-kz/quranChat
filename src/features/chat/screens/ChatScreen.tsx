@@ -3,6 +3,7 @@ import {
   FlatList,
   KeyboardAvoidingView,
   Pressable,
+  TouchableOpacity,
   ScrollView,
   StyleSheet,
   View,
@@ -15,6 +16,7 @@ import { Ionicons } from '@expo/vector-icons';
 
 import { CText, Loader, LogoImage } from '@/components/ui';
 import { useThemeColors } from '@/hooks/useTheme';
+import { useThemeStore } from '@/store/theme.store';
 import { useHaptics } from '@/hooks/useHaptics';
 import { queryClient } from '@/lib/queryClient';
 import {
@@ -44,6 +46,7 @@ const ERROR_TEXT = "I couldn't reach the server. Please try again.";
 
 export default function ChatScreen({ conversationId }: Props) {
   const c = useThemeColors();
+  const isDark = useThemeStore((s) => s.resolved) === 'dark';
   const haptic = useHaptics();
 
   const params = useLocalSearchParams<{ id?: string }>();
@@ -224,7 +227,7 @@ export default function ChatScreen({ conversationId }: Props) {
             <Ionicons name="menu" size={26} color={c.text} />
           </Pressable>
           <View style={styles.titleWrap}>
-            <View style={[styles.logoCircle, { backgroundColor: c.surface }]}>
+            <View style={[styles.logoCircle, { backgroundColor: isDark ? '#000000' : c.surface }]}>
               <LogoImage size={24} />
             </View>
             <CText variant="h3" style={{ color: c.text }}>
@@ -271,7 +274,7 @@ export default function ChatScreen({ conversationId }: Props) {
           )}
         </View>
 
-        <SafeAreaView edges={['bottom']} style={{ backgroundColor: c.background }}>
+        <View style={{ backgroundColor: c.background }}>
           <View style={styles.inputBar}>
             <MessageInput
               value={input}
@@ -280,7 +283,7 @@ export default function ChatScreen({ conversationId }: Props) {
               disabled={sending}
             />
           </View>
-        </SafeAreaView>
+        </View>
       </KeyboardAvoidingView>
     </View>
   );
@@ -309,6 +312,7 @@ function EmptyState({
   userTopics: string[] | null;
 }) {
   const c = useThemeColors();
+  const isDark = useThemeStore((s) => s.resolved) === 'dark';
   const questions = getPersonalizedQuestions(userTopics);
 
   return (
@@ -316,7 +320,7 @@ function EmptyState({
       contentContainerStyle={styles.emptyContent}
       keyboardShouldPersistTaps="handled"
     >
-      <View style={[styles.circle, { borderColor: c.border, backgroundColor: c.surface }]}>
+      <View style={[styles.circle, { borderColor: isDark ? '#000000' : c.border, backgroundColor: isDark ? '#000000' : c.surface }]}>
         <LogoImage size={52} />
       </View>
       <CText serif variant="h3" style={styles.welcomeTitle}>
@@ -324,17 +328,25 @@ function EmptyState({
       </CText>
       <View style={styles.chips}>
         {questions.map((q: string) => (
-          <Pressable
+          <View
             key={q}
-            onPress={() => onPick(q)}
-            style={({ pressed }) => [
+            style={[
               styles.chip,
-              { backgroundColor: c.surface, borderColor: c.border },
-              pressed && { opacity: 0.7 },
+              { 
+                backgroundColor: isDark ? c.surfaceMuted : '#E6F4EE', 
+                borderColor: isDark ? c.border : '#C8E6D8' 
+              }
             ]}
           >
-            <CText variant="small" style={{ flexShrink: 1 }}>{q}</CText>
-          </Pressable>
+            <TouchableOpacity
+              onPress={() => onPick(q)}
+              activeOpacity={0.7}
+            >
+              <CText variant="small" style={{ flexShrink: 1, color: isDark ? c.text : '#064E3B', fontWeight: '500' }}>
+                {q}
+              </CText>
+            </TouchableOpacity>
+          </View>
         ))}
       </View>
     </ScrollView>
@@ -413,8 +425,8 @@ const styles = StyleSheet.create({
   },
   chip: {
     paddingVertical: 10,
-    paddingHorizontal: 14,
-    borderRadius: 16,
+    paddingHorizontal: 16,
+    borderRadius: 20,
     borderWidth: 1,
   },
 });

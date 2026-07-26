@@ -15,12 +15,15 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { APP } from '@/constants/app';
 import { useAuthStore } from '@/store/auth.store';
 import { useOnboardingStore } from '@/store/onboarding.store';
+import { useThemeStore } from '@/store/theme.store';
 import { LogoImage } from '@/components/ui';
 import { useFonts } from '@/hooks/useFonts';
-import { palette } from '@/theme';
+import { useThemeColors } from '@/hooks/useTheme';
 
 export default function SplashScreen() {
   const insets = useSafeAreaInsets();
+  const c = useThemeColors();
+  const isDark = useThemeStore((s) => s.resolved) === 'dark';
 
   // Logo card animations
   const cardScale = useSharedValue(0.6);
@@ -92,24 +95,24 @@ export default function SplashScreen() {
   }, [ready, fontsLoaded, onboardingDone, session, profile]);
 
   return (
-    <View style={[styles.container, { paddingBottom: insets.bottom + 32 }]}>
+    <View style={[styles.container, { backgroundColor: c.background, paddingBottom: insets.bottom + 32 }]}>
       {/* Center content */}
       <View style={styles.center}>
         {/* Animated logo card */}
-        <Animated.View style={[styles.card, cardStyle]}>
+        <Animated.View style={[styles.card, { backgroundColor: isDark ? '#000000' : '#FFFFFF' }, cardStyle]}>
           <LogoImage size={140} />
         </Animated.View>
 
         {/* App name & tagline */}
         <Animated.View style={textStyle}>
-          <Text style={styles.title}>{APP.name}</Text>
-          <Text style={styles.tagline}>{APP.tagline}</Text>
+          <Text style={[styles.title, { color: c.primary }]}>{APP.name}</Text>
+          <Text style={[styles.tagline, { color: c.text }]}>{APP.tagline}</Text>
         </Animated.View>
       </View>
 
       {/* Bottom loader */}
       <Animated.View style={[styles.bottom, bottomStyle]}>
-        <ActivityIndicator size="small" color="#064E3B" />
+        <ActivityIndicator size="small" color={c.primary} />
         <Text style={styles.loadingText}>LOADING</Text>
       </Animated.View>
     </View>
@@ -119,7 +122,8 @@ export default function SplashScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: palette.tertiary,
+    // we could dynamically set bg color inline, but palette.tertiary is already used here which might need changing
+    // wait, we can just remove background color here and set it inline
   },
   center: {
     flex: 1,
@@ -131,7 +135,6 @@ const styles = StyleSheet.create({
     width: 220,
     height: 220,
     borderRadius: 28,
-    backgroundColor: '#FFFFFF',
     alignItems: 'center',
     justifyContent: 'center',
     shadowColor: '#1F2937',
@@ -144,7 +147,6 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 36,
     lineHeight: 42,
-    color: palette.primary,
     textAlign: 'center',
     fontWeight: '700',
   },
@@ -152,7 +154,6 @@ const styles = StyleSheet.create({
     marginTop: 10,
     fontSize: 16,
     lineHeight: 24,
-    color: palette.secondary,
     textAlign: 'center',
     fontStyle: 'italic',
     paddingHorizontal: 24,

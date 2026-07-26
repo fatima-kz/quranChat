@@ -3,6 +3,7 @@ import { Ionicons } from '@expo/vector-icons';
 
 import { CText } from '@/components/ui';
 import { useThemeColors } from '@/hooks/useTheme';
+import { useThemeStore } from '@/store/theme.store';
 import { useAskQuestion } from '@/features/home/hooks/useAskQuestion';
 
 const ITEMS = [
@@ -28,6 +29,7 @@ const ITEMS = [
 
 export function GuidanceForYou() {
   const c = useThemeColors();
+  const isDark = useThemeStore((s) => s.resolved) === 'dark';
   const ask = useAskQuestion();
 
   return (
@@ -42,9 +44,9 @@ export function GuidanceForYou() {
               key={item.label}
               style={{
                 borderRadius: 18,
-                backgroundColor: isPrimary ? '#064E3B' : '#E6F4EE',
+                backgroundColor: isPrimary ? c.primaryDeep : (isDark ? c.surfaceMuted : '#E6F4EE'),
                 borderWidth: 1,
-                borderColor: isPrimary ? '#064E3B' : '#D1E8DD',
+                borderColor: isPrimary ? c.primaryDeep : (isDark ? c.border : '#D1E8DD'),
                 overflow: 'hidden',
                 shadowColor: '#000',
                 shadowOffset: { width: 0, height: 4 },
@@ -66,21 +68,21 @@ export function GuidanceForYou() {
                       borderRadius: 10,
                       alignItems: 'center',
                       justifyContent: 'center',
-                      backgroundColor: isPrimary ? 'rgba(255,255,255,0.18)' : '#C8E6D8',
+                      backgroundColor: isPrimary ? 'rgba(255,255,255,0.18)' : (isDark ? c.surface : '#C8E6D8'),
                     }}
                   >
-                    <Ionicons name={item.icon} size={22} color={isPrimary ? '#FFFFFF' : '#064E3B'} />
+                    <Ionicons name={item.icon} size={22} color={isPrimary ? '#FFFFFF' : c.primary} />
                   </View>
                   <Ionicons
                     name="arrow-forward"
                     size={18}
-                    color={isPrimary ? 'rgba(255,255,255,0.7)' : '#6B7280'}
+                    color={isPrimary ? 'rgba(255,255,255,0.7)' : c.textMuted}
                   />
                 </View>
                 <CText
                   variant="bodyMedium"
                   style={{
-                    color: isPrimary ? '#FFFFFF' : '#1F2937',
+                    color: isPrimary ? '#FFFFFF' : c.text,
                     marginTop: 16,
                     lineHeight: 22,
                   }}

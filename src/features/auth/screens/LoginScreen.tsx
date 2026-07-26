@@ -9,6 +9,9 @@ import { useHaptics } from '@/hooks/useHaptics';
 import { Screen } from '@/components/layout';
 import { Input, LogoImage, GoogleIcon } from '@/components/ui';
 import { useAuthStore } from '@/store/auth.store';
+import { useOnboardingStore } from '@/store/onboarding.store';
+import { useThemeColors } from '@/hooks/useTheme';
+import { useThemeStore } from '@/store/theme.store';
 import { supabaseReady } from '@/lib/supabase';
 import { isValidEmail } from '@/utils/validators';
 import { signInWithEmail, signUpWithEmail, signInWithGoogle } from '@/services/auth.service';
@@ -17,21 +20,17 @@ type LoginForm = { email: string; password: string };
 type Mode = 'sign-in' | 'sign-up';
 
 const COLORS = {
-  bg: '#F5F2EA',
-  cardBg: '#FFFFFF',
-  primaryDark: '#064E3B',
-  primaryLight: '#3CB99E',
-  textDark: '#1F2937',
-  textBlack: '#000000',
-  textMuted: '#6B7280',
   white: '#FFFFFF',
-  borderLight: '#E5E5E5',
-  surfaceMuted: '#EDEAE2',
+  textDark: '#1F2937',
+  textBlack: '#1F2937',
+  textMuted: '#6B7280',
   danger: '#B44545',
 };
 
 export default function LoginScreen() {
   const haptic = useHaptics();
+  const c = useThemeColors();
+  const isDark = useThemeStore((s) => s.resolved) === 'dark';
   const [showEmail, setShowEmail] = useState(false);
   const [mode, setMode] = useState<Mode>('sign-in');
   const [submitting, setSubmitting] = useState(false);
@@ -50,6 +49,7 @@ export default function LoginScreen() {
       else await signUpWithEmail(values.email.trim(), values.password);
 
       if (mode === 'sign-up') {
+        useOnboardingStore.getState().setDone(false);
         router.replace('/(onboarding)/welcome');
       } else {
         const profile = useAuthStore.getState().profile;
@@ -78,7 +78,7 @@ export default function LoginScreen() {
   };
 
   return (
-    <Screen noPadding style={{ backgroundColor: COLORS.bg }}>
+    <Screen noPadding style={{ backgroundColor: c.background }}>
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ flex: 1 }}>
         <ScrollView
           contentContainerStyle={{ flexGrow: 1, paddingHorizontal: 24, paddingBottom: 32 }}
@@ -90,16 +90,16 @@ export default function LoginScreen() {
             entering={FadeInDown.duration(600)}
             style={{ alignItems: 'center', marginTop: 56, marginBottom: 32 }}
           >
-            <View style={styles.logoCard}>
+            <View style={[styles.logoCard, { backgroundColor: isDark ? '#000000' : '#FFFFFF' }]}>
               <LogoImage size={92} />
             </View>
-            <Text style={styles.heroTitle}>{"Qur'an Chat"}</Text>
+            <Text style={[styles.heroTitle, { color: c.text }]}>{"Qur'an Chat"}</Text>
             <Text style={styles.heroTagline}>Embark on your journey of wisdom</Text>
           </Animated.View>
 
           {/* Auth card */}
           <Animated.View entering={FadeInDown.delay(150).duration(500)} style={{ marginBottom: 28 }}>
-            <View style={styles.authCard}>
+            <View style={[styles.authCard, { backgroundColor: c.surface }]}>
               {supabaseReady && (
                 <>
                   {/* Google button - icon LEFT, text RIGHT (side by side, row) */}
@@ -108,26 +108,26 @@ export default function LoginScreen() {
                     disabled={googleLoading}
                     style={({ pressed }) => [
                       styles.authBtn,
-                      { backgroundColor: COLORS.white, borderColor: COLORS.borderLight },
+                      { backgroundColor: isDark ? c.surfaceMuted : '#FFFFFF', borderColor: c.border },
                       pressed && { opacity: 0.85 },
                       googleLoading && { opacity: 0.7 },
                     ]}
                   >
                     {googleLoading ? (
-                      <ActivityIndicator color={COLORS.textDark} size="small" />
+                      <ActivityIndicator color={c.text} size="small" />
                     ) : (
                       <View style={styles.authBtnRow}>
                         <GoogleIcon size={22} />
-                        <Text style={styles.googleText}>Continue with Google</Text>
+                        <Text style={[styles.googleText, { color: c.text }]}>Continue with Google</Text>
                       </View>
                     )}
                   </Pressable>
 
                   {/* Divider */}
                   <View style={styles.divider}>
-                    <View style={[styles.dividerLine, { backgroundColor: COLORS.borderLight }]} />
-                    <Text style={styles.dividerText}>or</Text>
-                    <View style={[styles.dividerLine, { backgroundColor: COLORS.borderLight }]} />
+                    <View style={[styles.dividerLine, { backgroundColor: c.border }]} />
+                    <Text style={[styles.dividerText, { color: c.textMuted }]}>or</Text>
+                    <View style={[styles.dividerLine, { backgroundColor: c.border }]} />
                   </View>
                 </>
               )}
@@ -138,13 +138,13 @@ export default function LoginScreen() {
                   onPress={() => { haptic('light'); setShowEmail(true); }}
                   style={({ pressed }) => [
                     styles.authBtn,
-                    { backgroundColor: COLORS.white, borderColor: COLORS.textDark },
+                    { backgroundColor: isDark ? c.surfaceMuted : '#FFFFFF', borderColor: c.text },
                     pressed && { opacity: 0.85 },
                   ]}
                 >
                   <View style={styles.authBtnRow}>
-                    <Ionicons name="mail-outline" size={22} color={COLORS.textDark} />
-                    <Text style={styles.emailText}>Continue with Email</Text>
+                    <Ionicons name="mail-outline" size={22} color={c.text} />
+                    <Text style={[styles.emailText, { color: c.text }]}>Continue with Email</Text>
                   </View>
                 </Pressable>
               ) : (
@@ -163,15 +163,15 @@ export default function LoginScreen() {
                           style={[
                             styles.toggleBtn,
                             {
-                              backgroundColor: selected ? COLORS.primaryDark : COLORS.surfaceMuted,
-                              borderColor: selected ? COLORS.primaryDark : COLORS.borderLight,
+                              backgroundColor: selected ? c.primaryDeep : c.surfaceMuted,
+                              borderColor: selected ? c.primaryDeep : c.border,
                             },
                           ]}
                         >
                           <Text
                             style={[
                               styles.toggleText,
-                              { color: selected ? COLORS.white : COLORS.textDark },
+                              { color: selected ? '#FFFFFF' : c.text },
                             ]}
                           >
                             {m.label}
@@ -226,7 +226,7 @@ export default function LoginScreen() {
                       width: '100%',
                       height: 56,
                       borderRadius: 14,
-                      backgroundColor: '#064E3B',
+                      backgroundColor: c.primaryDeep,
                       overflow: 'hidden',
                       shadowColor: '#000',
                       shadowOffset: { width: 0, height: 4 },
@@ -264,19 +264,19 @@ export default function LoginScreen() {
                   </View>
 
                   {errorMsg ? (
-                    <Text style={styles.errorText}>{errorMsg}</Text>
+                    <Text style={[styles.errorText, { color: c.danger }]}>{errorMsg}</Text>
                   ) : null}
                 </Animated.View>
               )}
 
               {!supabaseReady && (
-                <Text style={styles.demoNote}>
+                <Text style={[styles.demoNote, { color: c.textMuted }]}>
                   Demo mode — Supabase not configured. Email sign-in works locally.
                 </Text>
               )}
 
               {/* Terms */}
-              <Text style={styles.terms}>
+              <Text style={[styles.terms, { color: c.textMuted }]}>
                 By continuing, you agree to our Terms of Service and Privacy Policy
               </Text>
             </View>
@@ -290,8 +290,8 @@ export default function LoginScreen() {
               { icon: 'heart' as const, label: 'Spiritual' },
             ].map((b) => (
               <View key={b.label} style={styles.badge}>
-                <Ionicons name={b.icon} size={22} color={COLORS.primaryDark} />
-                <Text style={styles.badgeLabel}>{b.label.toUpperCase()}</Text>
+                <Ionicons name={b.icon} size={22} color={c.primaryDeep} />
+                <Text style={[styles.badgeLabel, { color: c.textMuted }]}>{b.label.toUpperCase()}</Text>
               </View>
             ))}
           </Animated.View>
@@ -320,7 +320,6 @@ const styles = StyleSheet.create({
     fontSize: 36,
     lineHeight: 42,
     textAlign: 'center',
-    color: COLORS.primaryDark,
     fontWeight: '700',
   },
   heroTagline: {
@@ -335,7 +334,6 @@ const styles = StyleSheet.create({
   authCard: {
     borderRadius: 28,
     padding: 24,
-    backgroundColor: COLORS.cardBg,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 12 },
     shadowOpacity: 0.08,

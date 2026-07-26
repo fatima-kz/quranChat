@@ -2,12 +2,14 @@ import { ScrollView, View, TouchableOpacity, StyleSheet } from 'react-native';
 
 import { CText } from '@/components/ui';
 import { useThemeColors } from '@/hooks/useTheme';
+import { useThemeStore } from '@/store/theme.store';
 import { useAskQuestion } from '@/features/home/hooks/useAskQuestion';
 
 const THEMES = ['Success', 'Forgiveness', 'Charity', 'Patience', 'Gratitude', 'Family', 'Prayer'];
 
 export function ExploreThemes() {
   const c = useThemeColors();
+  const isDark = useThemeStore((s) => s.resolved) === 'dark';
   const ask = useAskQuestion();
 
   return (
@@ -25,9 +27,9 @@ export function ExploreThemes() {
             key={theme}
             style={{
               borderRadius: 12,
-              backgroundColor: '#E6F4EE',
+              backgroundColor: isDark ? c.surfaceMuted : '#E6F4EE',
               borderWidth: 1,
-              borderColor: '#D1E8DD',
+              borderColor: isDark ? c.border : '#D1E8DD',
               overflow: 'hidden',
               shadowColor: '#000',
               shadowOffset: { width: 0, height: 2 },
@@ -44,7 +46,7 @@ export function ExploreThemes() {
                 paddingVertical: 12,
               }}
             >
-              <CText variant="bodyMedium" style={{ color: '#1F2937', fontWeight: '600' }}>{theme}</CText>
+              <CText variant="bodyMedium" style={{ color: isDark ? c.text : '#1F2937', fontWeight: '600' }}>{theme}</CText>
             </TouchableOpacity>
           </View>
         ))}

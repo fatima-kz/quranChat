@@ -20,6 +20,7 @@ import { Ionicons } from '@expo/vector-icons';
 
 import { CText } from '@/components/ui';
 import { useThemeColors } from '@/hooks/useTheme';
+import { useThemeStore } from '@/store/theme.store';
 import { useHaptics } from '@/hooks/useHaptics';
 import { listConversations } from '@/services/chat.service';
 import { formatRelative } from '@/utils/formatDate';
@@ -37,6 +38,7 @@ const DRAWER_WIDTH = Math.min(300, SCREEN_W * 0.78);
 
 export function ChatSidebar({ open, onClose, userId, activeId, onSelect }: Props) {
   const c = useThemeColors();
+  const isDark = useThemeStore((s) => s.resolved) === 'dark';
   const haptic = useHaptics();
   const insets = useSafeAreaInsets();
 
@@ -89,7 +91,7 @@ export function ChatSidebar({ open, onClose, userId, activeId, onSelect }: Props
             top: 0,
             bottom: 0,
             width: DRAWER_WIDTH,
-            backgroundColor: '#FFFFFF',
+            backgroundColor: c.surface,
             shadowColor: '#000',
             shadowOffset: { width: 4, height: 0 },
             shadowOpacity: 0.15,
@@ -100,7 +102,7 @@ export function ChatSidebar({ open, onClose, userId, activeId, onSelect }: Props
         ]}
       >
         {/* Top accent bar */}
-        <View style={{ height: 4, width: '100%', backgroundColor: '#064E3B' }} />
+        <View style={{ height: 4, width: '100%', backgroundColor: c.primaryDeep }} />
 
         {/* Header */}
         <View
@@ -112,10 +114,10 @@ export function ChatSidebar({ open, onClose, userId, activeId, onSelect }: Props
             paddingTop: insets.top + 12,
             paddingBottom: 16,
             borderBottomWidth: 1,
-            borderBottomColor: '#E5E5E5',
+            borderBottomColor: c.border,
           }}
         >
-          <CText variant="h3" style={{ color: '#1F2937' }}>Chat History</CText>
+          <CText variant="h3" style={{ color: c.text }}>Chat History</CText>
           <TouchableOpacity onPress={onClose} hitSlop={12} activeOpacity={0.7}>
             <View
               style={{
@@ -124,10 +126,10 @@ export function ChatSidebar({ open, onClose, userId, activeId, onSelect }: Props
                 borderRadius: 17,
                 alignItems: 'center',
                 justifyContent: 'center',
-                backgroundColor: '#F3F4F6',
+                backgroundColor: c.surfaceMuted,
               }}
             >
-              <Ionicons name="close" size={20} color="#1F2937" />
+              <Ionicons name="close" size={20} color={c.text} />
             </View>
           </TouchableOpacity>
         </View>
@@ -139,9 +141,9 @@ export function ChatSidebar({ open, onClose, userId, activeId, onSelect }: Props
             marginTop: 14,
             marginBottom: 6,
             borderRadius: 16,
-            backgroundColor: '#E6F4EE',
+            backgroundColor: isDark ? c.surfaceMuted : '#E6F4EE',
             borderWidth: 1,
-            borderColor: '#C8E6D8',
+            borderColor: isDark ? c.border : '#C8E6D8',
             overflow: 'hidden',
           }}
         >
@@ -161,14 +163,14 @@ export function ChatSidebar({ open, onClose, userId, activeId, onSelect }: Props
                 width: 28,
                 height: 28,
                 borderRadius: 14,
-                backgroundColor: '#064E3B',
+                backgroundColor: c.primaryDeep,
                 alignItems: 'center',
                 justifyContent: 'center',
               }}
             >
               <Ionicons name="add" size={18} color="#FFFFFF" />
             </View>
-            <CText variant="bodyMedium" style={{ color: '#064E3B', fontWeight: '600' }}>New Chat</CText>
+            <CText variant="bodyMedium" style={{ color: isDark ? c.primary : '#064E3B', fontWeight: '600' }}>New Chat</CText>
           </TouchableOpacity>
         </View>
 
@@ -180,7 +182,7 @@ export function ChatSidebar({ open, onClose, userId, activeId, onSelect }: Props
         >
           {isLoading ? (
             <View style={{ paddingVertical: 48, alignItems: 'center' }}>
-              <ActivityIndicator color="#064E3B" />
+              <ActivityIndicator color={c.primary} />
             </View>
           ) : conversations && conversations.length > 0 ? (
             conversations.map((conv, index) => {
@@ -191,9 +193,9 @@ export function ChatSidebar({ open, onClose, userId, activeId, onSelect }: Props
                   style={{
                     marginTop: index === 0 ? 8 : 6,
                     borderRadius: 14,
-                    backgroundColor: isActive ? '#E6F4EE' : '#FFFFFF',
+                    backgroundColor: isActive ? (isDark ? c.surfaceMuted : '#E6F4EE') : c.surface,
                     borderWidth: 1,
-                    borderColor: isActive ? '#C8E6D8' : '#F3F4F6',
+                    borderColor: isActive ? (isDark ? c.primary : '#C8E6D8') : c.border,
                     overflow: 'hidden',
                   }}
                 >
@@ -215,25 +217,25 @@ export function ChatSidebar({ open, onClose, userId, activeId, onSelect }: Props
                         borderRadius: 17,
                         alignItems: 'center',
                         justifyContent: 'center',
-                        backgroundColor: isActive ? '#C8E6D8' : '#F3F4F6',
+                        backgroundColor: isActive ? (isDark ? c.primaryDeep : '#C8E6D8') : c.surfaceMuted,
                       }}
                     >
                       <Ionicons
                         name={isActive ? 'chatbubble' : 'chatbubble-outline'}
                         size={16}
-                        color={isActive ? '#064E3B' : '#6B7280'}
+                        color={isActive ? (isDark ? '#FFFFFF' : '#064E3B') : c.textMuted}
                       />
                     </View>
                     <View style={{ flex: 1, gap: 2 }}>
-                      <CText variant="small" style={{ color: '#1F2937', fontWeight: '500' }} numberOfLines={1}>
+                      <CText variant="small" style={{ color: c.text, fontWeight: '500' }} numberOfLines={1}>
                         {conv.title}
                       </CText>
-                      <CText variant="caption" style={{ color: '#9CA3AF' }}>
+                      <CText variant="caption" style={{ color: c.textMuted }}>
                         {formatRelative(conv.created_at)}
                       </CText>
                     </View>
                     {isActive && (
-                      <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: '#064E3B' }} />
+                      <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: c.primary }} />
                     )}
                   </TouchableOpacity>
                 </View>
@@ -248,15 +250,15 @@ export function ChatSidebar({ open, onClose, userId, activeId, onSelect }: Props
                   borderRadius: 32,
                   alignItems: 'center',
                   justifyContent: 'center',
-                  backgroundColor: '#F3F4F6',
+                  backgroundColor: c.surfaceMuted,
                 }}
               >
-                <Ionicons name="chatbubbles-outline" size={32} color="#9CA3AF" />
+                <Ionicons name="chatbubbles-outline" size={32} color={c.textMuted} />
               </View>
-              <CText variant="body" style={{ textAlign: 'center', marginTop: 12, color: '#6B7280' }}>
+              <CText variant="body" style={{ textAlign: 'center', marginTop: 12, color: c.textMuted }}>
                 No conversations yet
               </CText>
-              <CText variant="small" style={{ textAlign: 'center', marginTop: 4, color: '#9CA3AF' }}>
+              <CText variant="small" style={{ textAlign: 'center', marginTop: 4, color: c.textMuted }}>
                 Start a new chat to see your history here.
               </CText>
             </View>

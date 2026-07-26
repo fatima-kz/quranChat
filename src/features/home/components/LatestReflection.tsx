@@ -23,7 +23,7 @@ export function LatestReflection() {
       style={{
         marginTop: 24,
         borderRadius: 22,
-        backgroundColor: '#064E3B',
+        backgroundColor: c.primaryDeep,
         overflow: 'hidden',
         shadowColor: '#000',
         shadowOffset: { width: 0, height: 8 },
