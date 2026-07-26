@@ -69,6 +69,12 @@ export default function LoginScreen() {
     setGoogleLoading(true);
     try {
       await signInWithGoogle();
+      const session = useAuthStore.getState().session;
+      if (session) {
+        const profile = useAuthStore.getState().profile;
+        if (!profile?.full_name) router.replace('/(onboarding)/welcome');
+        else router.replace('/(tabs)/home');
+      }
     } catch (e) {
       haptic('error');
       setErrorMsg(e instanceof Error ? e.message : 'Google sign-in failed.');

@@ -5,6 +5,9 @@ import type { Profile, Gender } from '@/types';
 import type { Session } from '@supabase/supabase-js';
 import * as FileSystem from 'expo-file-system/legacy';
 
+import * as WebBrowser from 'expo-web-browser';
+import * as Linking from 'expo-linking';
+
 type LocalSession = { session: Session | null; profile: Profile | null };
 
 const LOCAL_SESSION_KEY = '@quranchat:localSession';
@@ -68,11 +71,35 @@ export async function signInWithGoogle(): Promise<void> {
   if (!(supabaseReady && supabase)) {
     throw new Error('Google sign-in requires Supabase to be configured.');
   }
-  const { error } = await supabase.auth.signInWithOAuth({
+
+  const appRedirect = Linking.createURL('auth');
+
+  const { data, error } = await supabase.auth.signInWithOAuth({
     provider: 'google',
-    options: { redirectTo: 'quranchat://auth' },
+    options: {
+      redirectTo: appRedirect,
+      skipBrowserRedirect: true,
+    },
   });
+
   if (error) throw error;
+
+  const result = await WebBrowser.openAuthSessionAsync(data.url, appRedirect);
+
+  if (result.type === 'success' && result.url) {
+    const url = new URL(result.url);
+    const params = new URLSearchParams(url.hash.replace(/^#/, ''));
+    const access_token = params.get('access_token');
+    const refresh_token = params.get('refresh_token');
+
+    if (access_token && refresh_token) {
+      const { error: sessionError } = await supabase.auth.setSession({
+        access_token,
+        refresh_token,
+      });
+      if (sessionError) throw sessionError;
+    }
+  }
 }
 
 export async function signOut(): Promise<void> {
