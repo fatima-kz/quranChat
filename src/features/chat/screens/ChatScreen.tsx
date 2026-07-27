@@ -28,6 +28,7 @@ import {
 import { sendChatMessage } from '@/services/ai.service';
 import { useAuthStore } from '@/store/auth.store';
 import { useChatStore } from '@/store/chat.store';
+import { useQuranStore } from '@/store/quran.store';
 import { getPersonalizedQuestions } from '@/constants/prompts';
 import { formatDate } from '@/utils/formatDate';
 import type { Message, Role } from '@/types';
@@ -54,7 +55,8 @@ export default function ChatScreen({ conversationId }: Props) {
   const routeId = conversationId ?? idParam ?? null;
 
   const [createdId, setCreatedId] = useState<string | null>(null);
-  const currentId = routeId ?? createdId;
+  const [forceNewChat, setForceNewChat] = useState(false);
+  const currentId = forceNewChat ? null : (routeId ?? createdId);
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [sending, setSending] = useState(false);
@@ -63,6 +65,7 @@ export default function ChatScreen({ conversationId }: Props) {
   const session = useAuthStore((s) => s.session);
   const profile = useAuthStore((s) => s.profile);
   const userId = session?.user?.id ?? profile?.id ?? null;
+  const recordActivity = useQuranStore((s) => s.recordActivity);
 
   const typing = useChatStore((s) => s.typing);
   const setTyping = useChatStore((s) => s.setTyping);
@@ -79,6 +82,7 @@ export default function ChatScreen({ conversationId }: Props) {
   const sendMessageRef = useRef<(text: string) => void>(() => {});
 
   const [syncedQueryId, setSyncedQueryId] = useState<string | null>(null);
+  const [hasPendingQuestion, setHasPendingQuestion] = useState(false);
 
   useEffect(() => {
     if (messagesQuery.data && syncedQueryId !== currentId) {
@@ -104,6 +108,7 @@ export default function ChatScreen({ conversationId }: Props) {
   const showTyping = typing && sending;
 
   const sendMessage = async (raw: string) => {
+    recordActivity();
     const text = raw.trim();
     if (!text || !userId || sending) return;
 
@@ -120,6 +125,8 @@ export default function ChatScreen({ conversationId }: Props) {
         const conv = await createConversation(userId, truncate(text, 40));
         convId = conv.id;
         setCreatedId(conv.id);
+        setSyncedQueryId(conv.id);
+        setForceNewChat(false);
         createdNew = true;
       }
 
@@ -177,16 +184,30 @@ export default function ChatScreen({ conversationId }: Props) {
     }
   };
 
-  useEffect(() => {
-    sendMessageRef.current = sendMessage;
-  });
+  const pendingQuestionRef = useRef<string | null>(null);
 
   useEffect(() => {
-    if (pendingQuestion) {
+    if (pendingQuestion && !hasPendingQuestion) {
+      const q = pendingQuestion;
       setPendingQuestion(null);
-      sendMessageRef.current(pendingQuestion);
+      setHasPendingQuestion(true);
+      setForceNewChat(true);
+      setMessages([]);
+      setCreatedId(null);
+      setSyncedQueryId(null);
+      queryClient.removeQueries({ queryKey: ['messages'] });
+      pendingQuestionRef.current = q;
     }
-  }, [pendingQuestion, setPendingQuestion]);
+  }, [pendingQuestion, setPendingQuestion, hasPendingQuestion]);
+
+  useEffect(() => {
+    if (hasPendingQuestion && pendingQuestionRef.current && !sending) {
+      const q = pendingQuestionRef.current;
+      pendingQuestionRef.current = null;
+      setHasPendingQuestion(false);
+      sendMessage(q);
+    }
+  }, [hasPendingQuestion, sending, currentId]);
 
   const handleCopy = async (content: string) => {
     await Clipboard.setStringAsync(content);
@@ -246,7 +267,7 @@ export default function ChatScreen({ conversationId }: Props) {
           <Pressable
             hitSlop={12}
             style={styles.iconBtn}
-            onPress={() => { haptic('light'); setMessages([]); setCreatedId(null); }}
+            onPress={() => { haptic('light'); setMessages([]); setCreatedId(null); setForceNewChat(true); setSyncedQueryId(null); queryClient.removeQueries({ queryKey: ['messages'] }); }}
           >
             <Ionicons name="create-outline" size={24} color={c.text} />
           </Pressable>

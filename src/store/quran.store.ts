@@ -31,6 +31,8 @@ type QuranState = {
   lastRead: ReadingProgress | null;
   recentSurahs: RecentSurah[];
   bookmarks: Bookmark[];
+  streakCount: number;
+  lastActiveDate: string | null;
   hydrated: boolean;
 
   hydrate: () => Promise<void>;
@@ -39,28 +41,35 @@ type QuranState = {
   addBookmark: (bookmark: Bookmark) => void;
   removeBookmark: (surahId: number, verseId: number) => void;
   isBookmarked: (surahId: number, verseId: number) => boolean;
+  recordActivity: () => void;
 };
 
 const STORAGE_KEY_LAST_READ = 'quran_last_read';
 const STORAGE_KEY_RECENT = 'quran_recent_surahs';
 const STORAGE_KEY_BOOKMARKS = 'quran_bookmarks';
+const STORAGE_KEY_STREAK = 'quran_streak';
 
 export const useQuranStore = create<QuranState>((set, get) => ({
   lastRead: null,
   recentSurahs: [],
   bookmarks: [],
+  streakCount: 0,
+  lastActiveDate: null,
   hydrated: false,
 
   hydrate: async () => {
-    const [lastRead, recentSurahs, bookmarks] = await Promise.all([
+    const [lastRead, recentSurahs, bookmarks, streakData] = await Promise.all([
       storage.getJSON<ReadingProgress>(STORAGE_KEY_LAST_READ),
       storage.getJSON<RecentSurah[]>(STORAGE_KEY_RECENT),
       storage.getJSON<Bookmark[]>(STORAGE_KEY_BOOKMARKS),
+      storage.getJSON<{streakCount: number, lastActiveDate: string}>(STORAGE_KEY_STREAK),
     ]);
     set({
       lastRead: lastRead ?? null,
       recentSurahs: recentSurahs ?? [],
       bookmarks: bookmarks ?? [],
+      streakCount: streakData?.streakCount ?? 0,
+      lastActiveDate: streakData?.lastActiveDate ?? null,
       hydrated: true,
     });
   },
@@ -95,5 +104,23 @@ export const useQuranStore = create<QuranState>((set, get) => ({
     return get().bookmarks.some(
       (b) => b.surahId === surahId && b.verseId === verseId,
     );
+  },
+
+  recordActivity: () => {
+    const { streakCount, lastActiveDate } = get();
+    const now = new Date();
+    const pad = (n: number) => String(n).padStart(2, '0');
+    const todayStr = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
+    
+    if (lastActiveDate === todayStr) return; // already recorded today
+    
+    const yesterday = new Date();
+    yesterday.setDate(yesterday.getDate() - 1);
+    const yesterdayStr = `${yesterday.getFullYear()}-${pad(yesterday.getMonth() + 1)}-${pad(yesterday.getDate())}`;
+    
+    const newStreak = lastActiveDate === yesterdayStr ? streakCount + 1 : 1;
+    
+    set({ streakCount: newStreak, lastActiveDate: todayStr });
+    storage.setJSON(STORAGE_KEY_STREAK, { streakCount: newStreak, lastActiveDate: todayStr });
   },
 }));

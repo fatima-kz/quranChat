@@ -32,6 +32,7 @@ export default function SurahScreen() {
   const addBookmark = useQuranStore((s) => s.addBookmark);
   const removeBookmark = useQuranStore((s) => s.removeBookmark);
   const bookmarks = useQuranStore((s) => s.bookmarks);
+  const recordActivity = useQuranStore((s) => s.recordActivity);
 
   const saveVerse = useSavedStore((s) => s.saveVerse);
   const unsaveVerse = useSavedStore((s) => s.unsaveVerse);
@@ -94,7 +95,8 @@ export default function SurahScreen() {
 
   useEffect(() => {
     loadSurah();
-  }, [loadSurah]);
+    recordActivity();
+  }, [loadSurah, recordActivity]);
 
   const handleBookmarkVerse = useCallback(
     (verse: Verse) => {
@@ -149,19 +151,6 @@ export default function SurahScreen() {
     },
     [surah],
   );
-
-  const handleContinueReading = useCallback(() => {
-    if (!surah) return;
-    // Save reading progress at the middle visible verse
-    const midVerse = surah.verses[Math.min(4, surah.verses.length - 1)];
-    setLastRead({
-      surahId: surah.id,
-      surahName: surah.name,
-      surahTransliteration: surah.transliteration,
-      verseId: midVerse.id,
-      timestamp: Date.now(),
-    });
-  }, [surah, setLastRead]);
 
   // Track reading progress as user scrolls
   const onViewableItemsChanged = useRef(({ viewableItems }: any) => {
@@ -317,21 +306,6 @@ export default function SurahScreen() {
         }
       />
 
-      {/* Continue Reading Floating Button */}
-      <SafeAreaView edges={['bottom']} style={styles.floatingWrap}>
-        <Pressable
-          onPress={handleContinueReading}
-          style={({ pressed }) => [
-            styles.floatingBtn,
-            { backgroundColor: c.primaryDeep },
-            pressed && { opacity: 0.9 },
-          ]}
-        >
-          <Ionicons name="book" size={18} color="#FFFFFF" />
-          <Text style={styles.floatingText}>CONTINUE READING</Text>
-          <Ionicons name="arrow-forward" size={16} color="#FFFFFF" />
-        </Pressable>
-      </SafeAreaView>
     </View>
   );
 }

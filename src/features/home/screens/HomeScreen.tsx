@@ -15,7 +15,6 @@ import { DailyAyahCard } from '@/features/home/components/DailyAyahCard';
 import { AskAICard } from '@/features/home/components/AskAICard';
 import { GuidanceForYou } from '@/features/home/components/GuidanceForYou';
 import { LatestReflection } from '@/features/home/components/LatestReflection';
-import { ExploreThemes } from '@/features/home/components/ExploreThemes';
 import { FloatingAskButton } from '@/features/home/components/FloatingAskButton';
 
 export default function HomeScreen() {
@@ -92,7 +91,6 @@ export default function HomeScreen() {
           <AskAICard />
           <GuidanceForYou />
           <LatestReflection />
-          <ExploreThemes />
         </Animated.View>
       </ScrollView>
 

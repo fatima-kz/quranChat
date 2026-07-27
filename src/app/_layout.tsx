@@ -27,6 +27,9 @@ export default function RootLayout() {
         <Stack.Screen name="(auth)" />
         <Stack.Screen name="(setup)" />
         <Stack.Screen name="(tabs)" />
+        <Stack.Screen name="search" />
+        <Stack.Screen name="prophets" />
+        <Stack.Screen name="searchModal" options={{ presentation: 'modal' }} />
       </Stack>
     </RootProvider>
   );
