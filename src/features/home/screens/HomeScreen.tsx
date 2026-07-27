@@ -5,7 +5,7 @@ import Animated, { useSharedValue, useAnimatedStyle, withTiming, FadeInDown } fr
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 
-import { CText } from '@/components/ui';
+import { CText, Avatar } from '@/components/ui';
 import { useThemeColors } from '@/hooks/useTheme';
 import { useHaptics } from '@/hooks/useHaptics';
 import { useAuthStore } from '@/store/auth.store';
@@ -58,7 +58,7 @@ export default function HomeScreen() {
             style={styles.iconBtn}
             onPress={() => { haptic('light'); router.push('/(tabs)/profile'); }}
           >
-            <Ionicons name="person-circle-outline" size={28} color={c.text} />
+            <Avatar name={profile?.full_name ?? 'User'} size={32} imageUrl={profile?.avatar_url} />
           </Pressable>
         </View>
 

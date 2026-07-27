@@ -5,7 +5,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 
-import { CText } from '@/components/ui';
+import { CText, Avatar } from '@/components/ui';
 import { useThemeColors } from '@/hooks/useTheme';
 import { useThemeStore } from '@/store/theme.store';
 import { useHaptics } from '@/hooks/useHaptics';
@@ -44,6 +44,11 @@ export default function ExploreScreen() {
     );
   };
 
+  const handleQiblahTap = () => {
+    haptic('light');
+    router.push('/qiblah');
+  };
+
   const handleTopicTap = (topicQuery: string) => {
     askQuestion(`What does the Qur'an say about ${topicQuery}?`);
   };
@@ -65,7 +70,7 @@ export default function ExploreScreen() {
             style={styles.iconBtn}
             onPress={() => { haptic('light'); router.push('/(tabs)/profile'); }}
           >
-            <Ionicons name="person-circle-outline" size={32} color={c.text} />
+            <Avatar name={profile?.full_name ?? 'User'} size={36} imageUrl={profile?.avatar_url} />
           </Pressable>
         </View>
 
@@ -98,6 +103,31 @@ export default function ExploreScreen() {
               </CText>
             </View>
             <Ionicons name="information-circle-outline" size={20} color={c.textMuted} />
+          </Pressable>
+        </Animated.View>
+
+        {/* Qiblah Compass Card */}
+        <Animated.View entering={FadeInDown.delay(50).duration(400)}>
+          <Pressable
+            style={({ pressed }) => [
+              pressed && { opacity: 0.8 }
+            ]}
+            onPress={handleQiblahTap}
+          >
+            <View style={[styles.streakCard, { backgroundColor: c.surface, borderColor: c.border }]}>
+              <View style={[styles.streakIconWrap, { backgroundColor: isDark ? '#1F2937' : '#F3F4F6' }]}>
+                <Ionicons name="compass" size={26} color={c.primary} />
+              </View>
+              <View style={{ flex: 1 }}>
+                <CText variant="h3" style={{ color: c.text, fontSize: 18 }}>
+                  Qiblah Compass
+                </CText>
+                <CText variant="caption" style={{ color: c.textMuted, marginTop: 4 }}>
+                  Find the direction to Mecca
+                </CText>
+              </View>
+              <Ionicons name="chevron-forward" size={20} color={c.textMuted} />
+            </View>
           </Pressable>
         </Animated.View>
 
