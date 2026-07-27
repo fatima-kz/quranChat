@@ -203,7 +203,8 @@ export default function ChatScreen({ conversationId }: Props) {
     if (idParam) {
       router.setParams({ id });
     } else {
-      router.push({ pathname: '/chat/[id]', params: { id } });
+      setCreatedId(id);
+      router.push({ pathname: '/(tabs)/chat/[id]', params: { id } });
     }
   };
 

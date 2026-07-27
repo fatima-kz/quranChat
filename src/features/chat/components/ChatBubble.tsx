@@ -5,6 +5,7 @@ import * as Clipboard from 'expo-clipboard';
 import { CText, Icon } from '@/components/ui';
 import { useThemeColors } from '@/hooks/useTheme';
 import { useHaptics } from '@/hooks/useHaptics';
+import { useSavedStore } from '@/store/saved.store';
 import type { Message } from '@/types';
 import { formatTime } from '@/utils/formatDate';
 
@@ -20,6 +21,25 @@ type Props = {
 export function ChatBubble({ message, onCopy, onBookmark, error }: Props) {
   const c = useThemeColors();
   const haptic = useHaptics();
+  const saveAiResponse = useSavedStore((s) => s.saveAiResponse);
+  const unsaveAiResponse = useSavedStore((s) => s.unsaveAiResponse);
+  const isAiSaved = useSavedStore((s) => s.isAiResponseSaved);
+
+  const isSaved = message.role === 'assistant' && isAiSaved(message.id);
+
+  const handleSaveToCollection = () => {
+    haptic('light');
+    if (isSaved) {
+      unsaveAiResponse(message.id);
+    } else {
+      saveAiResponse({
+        id: message.id,
+        content: message.content,
+        citation: message.citation ?? null,
+        timestamp: Date.now(),
+      });
+    }
+  };
 
   const handleShare = async () => {
     haptic('light');
@@ -64,7 +84,13 @@ export function ChatBubble({ message, onCopy, onBookmark, error }: Props) {
       {!error && (
         <View style={styles.actions}>
           <Action icon="copy-outline" label="Copy" onPress={() => { haptic('light'); onCopy(message.content); }} />
-          <Action icon={message.bookmarked ? 'bookmark' : 'bookmark-outline'} label="Save" onPress={() => { haptic('light'); onBookmark(message); }} />
+          <Action icon={message.bookmarked ? 'bookmark' : 'bookmark-outline'} label="Bookmark" onPress={() => { haptic('light'); onBookmark(message); }} />
+          <Action
+            icon={isSaved ? 'heart' : 'heart-outline'}
+            label="Save"
+            onPress={handleSaveToCollection}
+            highlight={isSaved}
+          />
           <Action icon="share-outline" label="Share" onPress={handleShare} />
         </View>
       )}
@@ -76,7 +102,7 @@ export function ChatBubble({ message, onCopy, onBookmark, error }: Props) {
   );
 }
 
-function Action({ icon, label, onPress }: { icon: React.ComponentProps<typeof Icon>['name']; label: string; onPress: () => void }) {
+function Action({ icon, label, onPress, highlight }: { icon: React.ComponentProps<typeof Icon>['name']; label: string; onPress: () => void; highlight?: boolean }) {
   const c = useThemeColors();
   const haptic = useHaptics();
   return (
@@ -89,7 +115,7 @@ function Action({ icon, label, onPress }: { icon: React.ComponentProps<typeof Ic
       ]}
       accessibilityLabel={label}
     >
-      <Icon name={icon} size={16} color={c.textMuted} />
+      <Icon name={icon} size={16} color={highlight ? c.accent : c.textMuted} />
     </Pressable>
   );
 }

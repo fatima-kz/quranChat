@@ -42,9 +42,7 @@ export function ConversationList({ userId }: Props) {
           keyExtractor={(item) => item.id}
           renderItem={({ item }) => (
             <Pressable
-              onPress={() =>
-                router.push({ pathname: '/chat/[id]', params: { id: item.id } })
-              }
+              onPress={() => router.push({ pathname: '/(tabs)/chat/[id]' as any, params: { id: item.id } })}
               style={({ pressed }) => [
                 styles.row,
                 { borderColor: c.border },

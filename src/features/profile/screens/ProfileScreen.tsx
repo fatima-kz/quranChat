@@ -247,6 +247,13 @@ export default function ProfileScreen() {
             icon="notifications-outline"
             label="Notifications"
             right={<Switch value={remindersOn} onValueChange={handleToggleReminders} trackColor={{ false: c.border, true: c.primary }} />}
+          />
+
+          <SettingRow
+            icon="heart-outline"
+            label="Saved Items"
+            onPress={() => { haptic('light'); router.push('/saved'); }}
+            showChevron
             isLast
           />
         </View>

@@ -4,6 +4,8 @@ import { supabase, supabaseReady } from '@/lib/supabase';
 import { useAuthStore } from '@/store/auth.store';
 import { useThemeStore } from '@/store/theme.store';
 import { useOnboardingStore } from '@/store/onboarding.store';
+import { useQuranStore } from '@/store/quran.store';
+import { useSavedStore } from '@/store/saved.store';
 import { ensureLocalSession } from '@/services/auth.service';
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
@@ -12,12 +14,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const setReady = useAuthStore((s) => s.setReady);
   const hydrateTheme = useThemeStore((s) => s.hydrate);
   const hydrateOnboarding = useOnboardingStore((s) => s.hydrate);
+  const hydrateQuran = useQuranStore((s) => s.hydrate);
+  const hydrateSaved = useSavedStore((s) => s.hydrate);
 
   useEffect(() => {
     let active = true;
 
     async function init() {
-      await Promise.all([hydrateTheme(), hydrateOnboarding()]);
+      await Promise.all([hydrateTheme(), hydrateOnboarding(), hydrateQuran(), hydrateSaved()]);
 
       if (supabaseReady && supabase) {
         const { data } = await supabase.auth.getSession();
@@ -73,7 +77,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       active = false;
       cleanup?.then((fn) => fn?.());
     };
-  }, [setSession, setProfile, setReady, hydrateTheme, hydrateOnboarding]);
+  }, [setSession, setProfile, setReady, hydrateTheme, hydrateOnboarding, hydrateQuran, hydrateSaved]);
 
   return <>{children}</>;
 }

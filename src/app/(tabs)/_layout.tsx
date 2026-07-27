@@ -33,11 +33,29 @@ export default function TabsLayout() {
         }}
       />
       <Tabs.Screen
+        name="quran"
+        options={{
+          title: 'Quran',
+          tabBarIcon: ({ color, size, focused }) => (
+            <Ionicons name={focused ? 'book' : 'book-outline'} size={size} color={color} />
+          ),
+        }}
+      />
+      <Tabs.Screen
         name="chat"
         options={{
           title: 'Chat',
           tabBarIcon: ({ color, size, focused }) => (
             <Ionicons name={focused ? 'chatbubble' : 'chatbubble-outline'} size={size} color={color} />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="saved"
+        options={{
+          title: 'Saved',
+          tabBarIcon: ({ color, size, focused }) => (
+            <Ionicons name={focused ? 'heart' : 'heart-outline'} size={size} color={color} />
           ),
         }}
       />

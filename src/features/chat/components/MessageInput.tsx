@@ -16,15 +16,6 @@ export function MessageInput({ value, onChange, onSend, disabled }: Props) {
 
   return (
     <View style={[styles.row, { backgroundColor: c.surface, borderColor: c.border }]}>
-      <Pressable
-        style={({ pressed }) => [
-          styles.iconBtn,
-          { backgroundColor: c.surfaceMuted },
-          pressed && { opacity: 0.8 },
-        ]}
-      >
-        <Ionicons name="add" size={22} color={c.primary} />
-      </Pressable>
       <TextInput
         value={value}
         onChangeText={onChange}
@@ -39,11 +30,15 @@ export function MessageInput({ value, onChange, onSend, disabled }: Props) {
         onPress={onSend}
         style={({ pressed }) => [
           styles.sendBtn,
-          { backgroundColor: canSend ? c.primary : c.surfaceMuted },
+          { backgroundColor: c.surfaceMuted },
           pressed && canSend && { opacity: 0.9, transform: [{ scale: 0.96 }] },
         ]}
       >
-        <Ionicons name="send" size={18} color={canSend ? '#FFFFFF' : c.textMuted} />
+        <Ionicons 
+          name="send" 
+          size={18} 
+          color={c.textMuted} 
+        />
       </Pressable>
     </View>
   );
@@ -53,20 +48,15 @@ const styles = StyleSheet.create({
   row: {
     flexDirection: 'row',
     alignItems: 'center',
+    width: '100%',
     borderRadius: 18,
     borderWidth: 1,
     paddingHorizontal: 8,
     paddingVertical: 6,
   },
-  iconBtn: {
-    width: 40,
-    height: 40,
-    borderRadius: 10,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
   input: {
     flex: 1,
+    flexShrink: 1,
     maxHeight: 120,
     minHeight: 24,
     paddingVertical: 0,

@@ -59,11 +59,11 @@ export function AskAICard() {
         disabled={!value.trim()}
         style={({ pressed }) => [
           styles.sendBtn,
-          { backgroundColor: value.trim() ? c.primary : c.surfaceMuted },
+          { backgroundColor: c.surfaceMuted },
           pressed && value.trim() && { opacity: 0.9, transform: [{ scale: 0.96 }] },
         ]}
       >
-        <Ionicons name="send" size={18} color={value.trim() ? '#FFFFFF' : c.textMuted} />
+        <Ionicons name="send" size={18} color={c.textMuted} />
       </Pressable>
     </View>
   );
