@@ -1,4 +1,4 @@
-import { useEffect, useState, useMemo, useCallback } from 'react';
+import { useEffect, useState, useMemo, useCallback, useRef } from 'react';
 import {
   View,
   ScrollView,
@@ -37,6 +37,8 @@ export default function QuranScreen() {
   const recentSurahs = useQuranStore((s) => s.recentSurahs);
   const hydrated = useQuranStore((s) => s.hydrated);
   const hydrate = useQuranStore((s) => s.hydrate);
+  const bookmarks = useQuranStore((s) => s.bookmarks);
+  const bookmarkedSurahIds = useMemo(() => new Set(bookmarks.map(b => b.surahId)), [bookmarks]);
 
   const [search, setSearch] = useState('');
 
@@ -60,59 +62,98 @@ export default function QuranScreen() {
     router.push({ pathname: '/quran/[id]', params: { id: String(id) } });
   }, []);
 
+  const flatListRef = useRef<FlatList>(null);
+
+  useEffect(() => {
+    if (filtered.length === allSurahs.length && bookmarkedSurahIds.size > 0) {
+      const idx = filtered.findIndex((s) => bookmarkedSurahIds.has(s.id));
+      if (idx >= 0) {
+        setTimeout(() => {
+          flatListRef.current?.scrollToIndex({ index: idx, animated: true, viewPosition: 0.2 });
+        }, 600);
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filtered.length, bookmarkedSurahIds]);
+
   const renderSurahRow = useCallback(
-    ({ item }: { item: SurahMeta }) => (
-      <Pressable
-        onPress={() => navigateToSurah(item.id)}
-        style={({ pressed }) => [
-          styles.surahRow,
-          { backgroundColor: c.surface, borderColor: c.border },
-          pressed && { opacity: 0.8 },
-        ]}
-      >
-        {/* Number circle */}
-        <View style={[styles.numberCircle, { borderColor: c.primary }]}>
-          <Text style={[styles.numberText, { color: c.primary }]}>{item.id}</Text>
-        </View>
+    ({ item }: { item: SurahMeta }) => {
+      const isBookmarked = bookmarkedSurahIds.has(item.id);
+      return (
+        <Pressable
+          onPress={() => navigateToSurah(item.id)}
+          style={({ pressed }) => [
+            { opacity: pressed ? 0.8 : 1 }
+          ]}
+        >
+          <View style={[
+            {
+              flexDirection: 'row',
+              alignItems: 'center',
+              paddingVertical: 16,
+            },
+            isBookmarked ? {
+              backgroundColor: isDark ? 'rgba(60,185,158,0.15)' : '#E6F4EE',
+              borderRadius: 16,
+              paddingHorizontal: 16,
+              marginVertical: 8,
+              borderBottomWidth: 0,
+              shadowColor: isDark ? '#000' : '#064E3B',
+              shadowOffset: { width: 0, height: 4 },
+              shadowOpacity: 0.15,
+              shadowRadius: 8,
+              elevation: 4,
+            } : {
+              borderBottomWidth: 1,
+              borderBottomColor: isDark ? '#4B5563' : '#D4C4A8',
+              backgroundColor: c.background,
+            }
+          ]}>
+            {/* Left Side: Number & Info */}
+            <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}>
+              <View style={[styles.numberCircle, { borderColor: isBookmarked ? c.accent : c.primary }]}>
+                <Text style={[styles.numberText, { color: isBookmarked ? c.accent : c.primary }]}>{item.id}</Text>
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={[styles.surahName, { color: c.text }]}>{item.transliteration}</Text>
+                <Text style={[styles.surahSub, { color: c.textMuted }]}>
+                  {item.translation} {'\u2022'} {item.total_verses} Verses
+                </Text>
+              </View>
+            </View>
 
-        {/* Name & info */}
-        <View style={styles.surahInfo}>
-          <Text style={[styles.surahName, { color: c.text }]}>{item.transliteration}</Text>
-          <Text style={[styles.surahSub, { color: c.textMuted }]}>
-            {item.translation} {'\u2022'} {item.total_verses} Verses
-          </Text>
-        </View>
-
-        {/* Arabic name & type badge */}
-        <View style={styles.surahRight}>
-          <Text style={[styles.arabicName, { color: c.text }]}>{item.name}</Text>
-          <View
-            style={[
-              styles.typeBadge,
-              {
-                backgroundColor: item.type === 'meccan'
-                  ? (isDark ? 'rgba(60,185,158,0.15)' : '#E6F4EE')
-                  : (isDark ? 'rgba(212,175,55,0.15)' : '#FEF3C7'),
-              },
-            ]}
-          >
-            <Text
+          {/* Arabic name & type badge */}
+          <View style={styles.surahRight}>
+            <Text style={[styles.arabicName, { color: c.text }]}>{item.name}</Text>
+            <View
               style={[
-                styles.typeText,
+                styles.typeBadge,
                 {
-                  color: item.type === 'meccan'
-                    ? c.primary
-                    : c.accent,
+                  backgroundColor: item.type === 'meccan'
+                    ? (isDark ? 'rgba(60,185,158,0.15)' : '#E6F4EE')
+                    : (isDark ? 'rgba(212,175,55,0.15)' : '#FEF3C7'),
                 },
               ]}
             >
-              {item.type.toUpperCase()}
-            </Text>
+              <Text
+                style={[
+                  styles.typeText,
+                  {
+                    color: item.type === 'meccan'
+                      ? c.primary
+                      : c.accent,
+                  },
+                ]}
+              >
+                {item.type.toUpperCase()}
+              </Text>
+            </View>
           </View>
-        </View>
-      </Pressable>
-    ),
-    [c, isDark, navigateToSurah],
+          </View>
+        </Pressable>
+      );
+    },
+    [c, isDark, navigateToSurah, bookmarkedSurahIds],
   );
 
   return (
@@ -124,11 +165,20 @@ export default function QuranScreen() {
       </SafeAreaView>
 
       <FlatList
+        ref={flatListRef}
         data={filtered}
         keyExtractor={(item) => String(item.id)}
         renderItem={renderSurahRow}
         contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 100 }}
         keyboardShouldPersistTaps="handled"
+        onScrollToIndexFailed={(info) => {
+          // Average row height is around 80. Add header offset (around 300)
+          const offset = 300 + (80 * info.index);
+          flatListRef.current?.scrollToOffset({ offset, animated: false });
+          setTimeout(() => {
+            flatListRef.current?.scrollToIndex({ index: info.index, animated: true, viewPosition: 0.2 });
+          }, 100);
+        }}
         ListHeaderComponent={
           <>
             {/* Continue Reading Banner */}
@@ -160,62 +210,56 @@ export default function QuranScreen() {
 
             {/* Recently Viewed */}
             {recentSurahs.length > 0 && (
-              <View style={styles.section}>
-                <View style={styles.sectionHeader}>
+              <View style={[styles.section, {
+                backgroundColor: isDark ? 'rgba(60,185,158,0.15)' : '#E6F4EE',
+                borderRadius: 20,
+                paddingVertical: 16,
+                paddingLeft: 20,
+                marginHorizontal: -20, // stretch to screen edges to accommodate FlatList padding, or just inset it
+                shadowColor: isDark ? '#000' : '#064E3B',
+                shadowOffset: { width: 0, height: 4 },
+                shadowOpacity: 0.15,
+                shadowRadius: 8,
+                elevation: 4,
+                marginBottom: 24,
+              }]}>
+                <View style={[styles.sectionHeader, { paddingRight: 20 }]}>
                   <CText serif variant="h3" style={{ color: c.text }}>Recently Viewed</CText>
                 </View>
                 <ScrollView
                   horizontal
                   showsHorizontalScrollIndicator={false}
-                  contentContainerStyle={{ gap: 12, paddingRight: 8 }}
+                  contentContainerStyle={{ gap: 12, paddingRight: 28 }}
                 >
                   {recentSurahs.slice(0, 5).map((s) => (
                     <Pressable
                       key={s.id}
                       onPress={() => navigateToSurah(s.id)}
-                      style={({ pressed }) => [
+                      style={({ pressed }) => [{ opacity: pressed ? 0.8 : 1 }]}
+                    >
+                      <View style={[
                         styles.recentCard,
                         {
                           backgroundColor: c.surface,
                           borderColor: c.border,
-                        },
-                        pressed && { opacity: 0.8 },
-                      ]}
-                    >
-                      <View style={styles.recentTop}>
-                        <View style={[styles.recentNum, { borderColor: c.primary }]}>
+                        }
+                      ]}>
+                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+                        <View style={[styles.recentNum, { borderColor: c.primary, backgroundColor: isDark ? c.surface : '#FFFFFF' }]}>
                           <Text style={[styles.recentNumText, { color: c.primary }]}>
                             {s.id}
                           </Text>
                         </View>
-                        <View
-                          style={[
-                            styles.typeBadge,
-                            {
-                              backgroundColor: s.type === 'meccan'
-                                ? (isDark ? 'rgba(60,185,158,0.15)' : '#E6F4EE')
-                                : (isDark ? 'rgba(212,175,55,0.15)' : '#FEF3C7'),
-                            },
-                          ]}
-                        >
-                          <Text
-                            style={[
-                              styles.typeText,
-                              {
-                                color: s.type === 'meccan' ? c.primary : c.accent,
-                              },
-                            ]}
-                          >
-                            {s.type === 'meccan' ? 'Meccan' : 'Medinan'}
+                        <View style={{ flex: 1, justifyContent: 'center' }}>
+                          <Text style={[styles.recentName, { color: c.text }]} numberOfLines={1}>
+                            {s.transliteration}
+                          </Text>
+                          <Text style={[styles.recentSub, { color: c.textMuted }]} numberOfLines={1}>
+                            {s.translation} {'\u2022'} {s.total_verses} Verses
                           </Text>
                         </View>
+                        </View>
                       </View>
-                      <Text style={[styles.recentName, { color: c.text }]} numberOfLines={1}>
-                        {s.transliteration}
-                      </Text>
-                      <Text style={[styles.recentSub, { color: c.textMuted }]} numberOfLines={1}>
-                        {s.translation} {'\u2022'} {s.total_verses} Verses
-                      </Text>
                     </Pressable>
                   ))}
                 </ScrollView>
@@ -323,7 +367,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   recentCard: {
-    width: 160,
+    width: 220,
     borderRadius: 16,
     padding: 14,
     borderWidth: 1,

@@ -23,9 +23,9 @@ export function ChatBubble({ message, onCopy, onBookmark, error }: Props) {
   const haptic = useHaptics();
   const saveAiResponse = useSavedStore((s) => s.saveAiResponse);
   const unsaveAiResponse = useSavedStore((s) => s.unsaveAiResponse);
-  const isAiSaved = useSavedStore((s) => s.isAiResponseSaved);
+  const aiResponses = useSavedStore((s) => s.aiResponses);
 
-  const isSaved = message.role === 'assistant' && isAiSaved(message.id);
+  const isSaved = message.role === 'assistant' && aiResponses.some((r) => r.id === message.id);
 
   const handleSaveToCollection = () => {
     haptic('light');
@@ -84,7 +84,6 @@ export function ChatBubble({ message, onCopy, onBookmark, error }: Props) {
       {!error && (
         <View style={styles.actions}>
           <Action icon="copy-outline" label="Copy" onPress={() => { haptic('light'); onCopy(message.content); }} />
-          <Action icon={message.bookmarked ? 'bookmark' : 'bookmark-outline'} label="Bookmark" onPress={() => { haptic('light'); onBookmark(message); }} />
           <Action
             icon={isSaved ? 'heart' : 'heart-outline'}
             label="Save"

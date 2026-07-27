@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef, useCallback } from 'react';
+import React, { useEffect, useState, useRef, useCallback, useMemo, memo } from 'react';
 import {
   View,
   FlatList,
@@ -55,6 +55,24 @@ export default function SurahScreen() {
   const [surah, setSurah] = useState<SurahData | null>(null);
   const [loading, setLoading] = useState(true);
   const flatListRef = useRef<FlatList<Verse>>(null);
+
+  useEffect(() => {
+    if (!loading && surah && flatListRef.current) {
+      const bookmarkedVerseIdx = surah.verses.findIndex(
+        (v) => bookmarks.some((b) => b.surahId === surahId && b.verseId === v.id)
+      );
+      if (bookmarkedVerseIdx >= 0) {
+        setTimeout(() => {
+          flatListRef.current?.scrollToIndex({ 
+            index: bookmarkedVerseIdx, 
+            animated: true,
+            viewPosition: 0.1, 
+          });
+        }, 500);
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [loading, surah, surahId]);
 
   const loadSurah = useCallback(async () => {
     setLoading(true);
@@ -167,6 +185,46 @@ export default function SurahScreen() {
     }
   });
 
+  const VerseRow = useMemo(() => React.memo(function VerseRowComponent({ item, isMarked, isSaved }: { item: Verse; isMarked: boolean; isSaved: boolean }) {
+    return (
+      <View style={[
+      styles.verseCard, 
+      { 
+        backgroundColor: isMarked ? (isDark ? c.surfaceMuted : '#F0F9F6') : c.surface, 
+        borderColor: isMarked ? c.primary : c.border,
+        borderWidth: isMarked ? 2 : 1
+      }
+    ]}>
+      <View style={styles.verseHeader}>
+        <View style={[styles.verseNum, { backgroundColor: isDark ? (isMarked ? c.surface : c.surfaceMuted) : (isMarked ? '#FFFFFF' : '#E6F4EE') }]}>
+          <Text style={[styles.verseNumText, { color: isMarked ? c.accent : c.primary }]}>{item.id}</Text>
+        </View>
+        <View style={styles.verseActions}>
+          <Pressable onPress={() => handleBookmarkVerse(item)} hitSlop={8}>
+            <Ionicons
+              name={isMarked ? 'bookmark' : 'bookmark-outline'}
+              size={20}
+              color={isMarked ? c.accent : c.textMuted}
+            />
+          </Pressable>
+          <Pressable onPress={() => handleSaveVerse(item)} hitSlop={8}>
+            <Ionicons
+              name={isSaved ? 'heart' : 'heart-outline'}
+              size={20}
+              color={isSaved ? c.accent : c.textMuted}
+            />
+          </Pressable>
+          <Pressable onPress={() => handleShare(item)} hitSlop={8}>
+            <Ionicons name="share-social-outline" size={20} color={c.textMuted} />
+          </Pressable>
+        </View>
+      </View>
+      <Text style={[styles.arabicVerse, { color: c.text }]}>{item.text}</Text>
+      <Text style={[styles.translationText, { color: c.textMuted }]}>{item.translation}</Text>
+    </View>
+    );
+  }), [c, isDark, handleBookmarkVerse, handleSaveVerse, handleShare]);
+
   const renderVerse = useCallback(
     ({ item }: { item: Verse }) => {
       const isMarked = bookmarks.some(
@@ -175,39 +233,9 @@ export default function SurahScreen() {
       const isSaved = savedVerses.some(
         (v) => v.id === `${surahId}-${item.id}`,
       );
-      return (
-        <View style={[styles.verseCard, { backgroundColor: c.surface, borderColor: c.border }]}>
-          <View style={styles.verseHeader}>
-            <View style={[styles.verseNum, { backgroundColor: isDark ? c.surfaceMuted : '#E6F4EE' }]}>
-              <Text style={[styles.verseNumText, { color: c.primary }]}>{item.id}</Text>
-            </View>
-            <View style={styles.verseActions}>
-              <Pressable onPress={() => handleBookmarkVerse(item)} hitSlop={8}>
-                <Ionicons
-                  name={isMarked ? 'bookmark' : 'bookmark-outline'}
-                  size={20}
-                  color={isMarked ? c.accent : c.textMuted}
-                />
-              </Pressable>
-              <Pressable onPress={() => handleSaveVerse(item)} hitSlop={8}>
-                <Ionicons
-                  name={isSaved ? 'heart' : 'heart-outline'}
-                  size={20}
-                  color={isSaved ? c.accent : c.textMuted}
-                />
-              </Pressable>
-              <Pressable onPress={() => handleShare(item)} hitSlop={8}>
-                <Ionicons name="share-social-outline" size={20} color={c.textMuted} />
-              </Pressable>
-            </View>
-          </View>
-
-          <Text style={[styles.arabicVerse, { color: c.text }]}>{item.text}</Text>
-          <Text style={[styles.translationText, { color: c.textMuted }]}>{item.translation}</Text>
-        </View>
-      );
+      return <VerseRow item={item} isMarked={isMarked} isSaved={isSaved} />;
     },
-    [c, isDark, bookmarks, savedVerses, surahId, handleBookmarkVerse, handleSaveVerse, handleShare],
+    [bookmarks, savedVerses, surahId, VerseRow],
   );
 
   if (loading || !surah) {
@@ -218,7 +246,6 @@ export default function SurahScreen() {
     );
   }
 
-  // Show Bismillah for all surahs except At-Tawbah (9)
   const showBismillah = surah.id !== 9;
 
   return (
@@ -246,11 +273,17 @@ export default function SurahScreen() {
         renderItem={renderVerse}
         contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 100 }}
         keyboardShouldPersistTaps="handled"
+        onScrollToIndexFailed={(info) => {
+          const offset = info.averageItemLength * info.index;
+          flatListRef.current?.scrollToOffset({ offset, animated: false });
+          setTimeout(() => {
+            flatListRef.current?.scrollToIndex({ index: info.index, animated: true, viewPosition: 0.1 });
+          }, 100);
+        }}
         onViewableItemsChanged={onViewableItemsChanged.current}
         viewabilityConfig={{ itemVisiblePercentThreshold: 50 }}
         ListHeaderComponent={
           <>
-            {/* Surah info card */}
             <View style={[styles.infoCard, { backgroundColor: c.surface, borderColor: c.border }]}>
               <View style={styles.infoLeft}>
                 <Text style={[styles.infoTitle, { color: c.text }]}>{surah.translation}</Text>

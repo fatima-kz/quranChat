@@ -78,13 +78,7 @@ export const useQuranStore = create<QuranState>((set, get) => ({
   },
 
   addBookmark: (bookmark) => {
-    const current = get().bookmarks;
-    // Don't duplicate
-    const exists = current.some(
-      (b) => b.surahId === bookmark.surahId && b.verseId === bookmark.verseId,
-    );
-    if (exists) return;
-    const updated = [bookmark, ...current];
+    const updated = [bookmark];
     set({ bookmarks: updated });
     storage.setJSON(STORAGE_KEY_BOOKMARKS, updated);
   },
