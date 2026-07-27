@@ -16,19 +16,7 @@ import { useThemeColors } from '@/hooks/useTheme';
 import { useThemeStore } from '@/store/theme.store';
 import { useQuranStore } from '@/store/quran.store';
 import { CText, LogoImage } from '@/components/ui';
-
-import metadata from '@/assets/quran/metadata.json';
-
-type SurahMeta = {
-  id: number;
-  name: string;
-  transliteration: string;
-  translation: string;
-  type: string;
-  total_verses: number;
-};
-
-const allSurahs: SurahMeta[] = metadata as SurahMeta[];
+import { allSurahs, type SurahMeta } from '@/features/quran/api/quran-data';
 
 export default function QuranScreen() {
   const c = useThemeColors();
@@ -59,7 +47,7 @@ export default function QuranScreen() {
   }, [search]);
 
   const navigateToSurah = useCallback((id: number) => {
-    router.push({ pathname: '/quran/[id]', params: { id: String(id) } });
+    router.push({ pathname: '/(tabs)/quran/[id]' as any, params: { id: String(id) } });
   }, []);
 
   const flatListRef = useRef<FlatList>(null);

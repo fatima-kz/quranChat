@@ -85,6 +85,13 @@ export default function ChatScreen({ conversationId }: Props) {
   }, [messagesQuery.data]);
 
   useEffect(() => {
+    if (!currentId) {
+      setMessages([]);
+      queryClient.removeQueries({ queryKey: ['messages'] });
+    }
+  }, [currentId]);
+
+  useEffect(() => {
     flatListRef.current?.scrollToEnd({ animated: true });
   }, [messages.length, typing, sending]);
 
