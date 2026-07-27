@@ -171,7 +171,7 @@ export default function QiblahScreen() {
 
       <View style={styles.compassWrap}>
         <View style={styles.infoTop}>
-          <CText serif style={{ color: isAligned ? c.primary : c.text, fontSize: 44, lineHeight: 52, marginBottom: 8, paddingHorizontal: 16 }}>
+          <CText serif style={{ color: isAligned ? c.primary : c.text, fontSize: 44, lineHeight: 52, paddingVertical: 12, marginBottom: 8, paddingHorizontal: 16 }}>
             {Math.round(heading)}°
           </CText>
           <CText variant="caption" muted style={{ textTransform: 'uppercase', letterSpacing: 2 }}>
