@@ -82,14 +82,13 @@ export default function ChatScreen({ conversationId }: Props) {
   const sendMessageRef = useRef<(text: string) => void>(() => {});
 
   const [syncedQueryId, setSyncedQueryId] = useState<string | null>(null);
-  const [hasPendingQuestion, setHasPendingQuestion] = useState(false);
 
   useEffect(() => {
-    if (messagesQuery.data && syncedQueryId !== currentId) {
+    if (messagesQuery.data && messagesQuery.data.length > 0) {
       setMessages(messagesQuery.data);
-      setSyncedQueryId(currentId);
     }
-  }, [messagesQuery.data, currentId, syncedQueryId]);
+    setSyncedQueryId(currentId);
+  }, [messagesQuery.data, currentId]);
 
   useEffect(() => {
     if (!currentId) {
@@ -107,17 +106,18 @@ export default function ChatScreen({ conversationId }: Props) {
   const loadingConversation = !!currentId && messagesQuery.isLoading && messages.length === 0;
   const showTyping = typing && sending;
 
-  const sendMessage = async (raw: string) => {
+  const sendMessage = async (raw: string, isPending = false) => {
     recordActivity();
     const text = raw.trim();
-    if (!text || !userId || sending) return;
+    if (!text || !userId) return;
+    if (sending && !isPending) return;
 
     haptic('light');
     setSending(true);
     setTyping(true);
     setInput('');
 
-    let convId = currentId;
+    let convId = isPending ? null : currentId;
     let createdNew = false;
 
     try {
@@ -138,14 +138,16 @@ export default function ChatScreen({ conversationId }: Props) {
         citation: null,
         created_at: new Date().toISOString(),
       };
-      setMessages((prev) => [...prev, userMessage]);
+      setMessages(isPending ? [userMessage] : (prev) => [...prev, userMessage]);
 
-      const history = [
-        ...messages
-          .filter((m) => m.role !== 'system')
-          .map((m) => ({ role: m.role, content: m.content })),
-        { role: 'user' as Role, content: text },
-      ];
+      const history = isPending
+        ? [{ role: 'user' as Role, content: text }]
+        : [
+            ...messages
+              .filter((m) => m.role !== 'system')
+              .map((m) => ({ role: m.role, content: m.content })),
+            { role: 'user' as Role, content: text },
+          ];
 
       const res = await sendChatMessage(history, {
         name: profile?.full_name,
@@ -184,30 +186,26 @@ export default function ChatScreen({ conversationId }: Props) {
     }
   };
 
-  const pendingQuestionRef = useRef<string | null>(null);
+  const lastProcessedQuestion = useChatStore((s) => s.lastProcessedQuestion);
+  const setLastProcessedQuestion = useChatStore((s) => s.setLastProcessedQuestion);
 
   useEffect(() => {
-    if (pendingQuestion && !hasPendingQuestion) {
+    if (pendingQuestion && pendingQuestion !== lastProcessedQuestion) {
+      setLastProcessedQuestion(pendingQuestion);
       const q = pendingQuestion;
       setPendingQuestion(null);
-      setHasPendingQuestion(true);
+
       setForceNewChat(true);
       setMessages([]);
       setCreatedId(null);
       setSyncedQueryId(null);
+      setSending(false);
+      setTyping(false);
       queryClient.removeQueries({ queryKey: ['messages'] });
-      pendingQuestionRef.current = q;
-    }
-  }, [pendingQuestion, setPendingQuestion, hasPendingQuestion]);
 
-  useEffect(() => {
-    if (hasPendingQuestion && pendingQuestionRef.current && !sending) {
-      const q = pendingQuestionRef.current;
-      pendingQuestionRef.current = null;
-      setHasPendingQuestion(false);
-      sendMessage(q);
+      sendMessage(q, true);
     }
-  }, [hasPendingQuestion, sending, currentId]);
+  }, [pendingQuestion, lastProcessedQuestion, setLastProcessedQuestion, setPendingQuestion]);
 
   const handleCopy = async (content: string) => {
     await Clipboard.setStringAsync(content);
@@ -227,12 +225,13 @@ export default function ChatScreen({ conversationId }: Props) {
 
   const handleSelectConversation = (id: string, title: string) => {
     setSidebarOpen(false);
+    setForceNewChat(false);
     setMessages([]);
+    setSyncedQueryId(null);
     setCreatedId(id);
     if (idParam) {
       router.setParams({ id });
     } else {
-      setCreatedId(id);
       router.push({ pathname: '/(tabs)/chat/[id]', params: { id } });
     }
   };

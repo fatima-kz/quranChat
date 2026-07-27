@@ -6,16 +6,19 @@ type ChatState = {
   pendingMessages: Record<string, Message[]>;
   typing: boolean;
   pendingQuestion: string | null;
+  lastProcessedQuestion: string | null;
   setTyping: (typing: boolean) => void;
   setPending: (conversationId: string, messages: Message[]) => void;
   clearPending: (conversationId: string) => void;
   setPendingQuestion: (q: string | null) => void;
+  setLastProcessedQuestion: (q: string | null) => void;
 };
 
 export const useChatStore = create<ChatState>((set) => ({
   pendingMessages: {},
   typing: false,
   pendingQuestion: null,
+  lastProcessedQuestion: null,
   setTyping: (typing) => set({ typing }),
   setPending: (conversationId, messages) =>
     set((s) => ({ pendingMessages: { ...s.pendingMessages, [conversationId]: messages } })),
@@ -26,4 +29,5 @@ export const useChatStore = create<ChatState>((set) => ({
       return { pendingMessages: next };
     }),
   setPendingQuestion: (pendingQuestion) => set({ pendingQuestion }),
+  setLastProcessedQuestion: (lastProcessedQuestion) => set({ lastProcessedQuestion }),
 }));

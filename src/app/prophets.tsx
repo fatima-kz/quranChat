@@ -68,8 +68,8 @@ export default function ProphetsScreen() {
     haptic('light');
     const question = `Tell me about Prophet ${selectedProphet.name} and his story in the Qur'an`;
     useChatStore.getState().setPendingQuestion(question);
-    router.push('/(tabs)/chat');
     setSelectedProphet(null);
+    router.navigate('/(tabs)/chat');
   };
 
   return (
