@@ -234,11 +234,7 @@ export default function SurahScreen() {
       <SafeAreaView edges={['top']} style={{ backgroundColor: c.background }}>
         <View style={styles.header}>
           <Pressable onPress={() => {
-            if (router.canGoBack()) {
-              router.back();
-            } else {
-              router.replace('/(tabs)/quran');
-            }
+            router.replace('/(tabs)/quran');
           }} hitSlop={12} style={styles.backBtn}>
             <Ionicons name="arrow-back" size={24} color={c.text} />
           </Pressable>
