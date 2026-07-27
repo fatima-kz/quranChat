@@ -244,7 +244,13 @@ export default function SurahScreen() {
     <View style={{ flex: 1, backgroundColor: c.background }}>
       <SafeAreaView edges={['top']} style={{ backgroundColor: c.background }}>
         <View style={styles.header}>
-          <Pressable onPress={() => router.back()} hitSlop={12} style={styles.backBtn}>
+          <Pressable onPress={() => {
+            if (router.canGoBack()) {
+              router.back();
+            } else {
+              router.replace('/(tabs)/quran');
+            }
+          }} hitSlop={12} style={styles.backBtn}>
             <Ionicons name="arrow-back" size={24} color={c.text} />
           </Pressable>
           <Text style={[styles.headerTitle, { color: c.text }]} numberOfLines={1}>

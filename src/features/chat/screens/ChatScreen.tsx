@@ -78,15 +78,19 @@ export default function ChatScreen({ conversationId }: Props) {
   const flatListRef = useRef<FlatList<Message>>(null);
   const sendMessageRef = useRef<(text: string) => void>(() => {});
 
+  const [syncedQueryId, setSyncedQueryId] = useState<string | null>(null);
+
   useEffect(() => {
-    if (messagesQuery.data) {
+    if (messagesQuery.data && syncedQueryId !== currentId) {
       setMessages(messagesQuery.data);
+      setSyncedQueryId(currentId);
     }
-  }, [messagesQuery.data]);
+  }, [messagesQuery.data, currentId, syncedQueryId]);
 
   useEffect(() => {
     if (!currentId) {
       setMessages([]);
+      setSyncedQueryId(null);
       queryClient.removeQueries({ queryKey: ['messages'] });
     }
   }, [currentId]);
@@ -167,9 +171,6 @@ export default function ChatScreen({ conversationId }: Props) {
     } finally {
       setSending(false);
       setTyping(false);
-      if (convId) {
-        queryClient.invalidateQueries({ queryKey: ['messages', convId] });
-      }
       if (createdNew && userId) {
         queryClient.invalidateQueries({ queryKey: ['conversations', userId] });
       }

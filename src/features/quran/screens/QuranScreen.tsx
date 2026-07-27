@@ -9,7 +9,7 @@ import {
   Text,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { router } from 'expo-router';
+import { router, useFocusEffect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 
 import { useThemeColors } from '@/hooks/useTheme';
@@ -52,17 +52,19 @@ export default function QuranScreen() {
 
   const flatListRef = useRef<FlatList>(null);
 
-  useEffect(() => {
-    if (filtered.length === allSurahs.length && bookmarkedSurahIds.size > 0) {
-      const idx = filtered.findIndex((s) => bookmarkedSurahIds.has(s.id));
-      if (idx >= 0) {
-        setTimeout(() => {
-          flatListRef.current?.scrollToIndex({ index: idx, animated: true, viewPosition: 0.2 });
-        }, 600);
+  useFocusEffect(
+    useCallback(() => {
+      if (filtered.length === allSurahs.length && bookmarkedSurahIds.size > 0) {
+        const idx = filtered.findIndex((s) => bookmarkedSurahIds.has(s.id));
+        if (idx >= 0) {
+          const timeout = setTimeout(() => {
+            flatListRef.current?.scrollToIndex({ index: idx, animated: true, viewPosition: 0.2 });
+          }, 100);
+          return () => clearTimeout(timeout);
+        }
       }
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filtered.length, bookmarkedSurahIds]);
+    }, [filtered.length, bookmarkedSurahIds, allSurahs.length])
+  );
 
   const renderSurahRow = useCallback(
     ({ item }: { item: SurahMeta }) => {
