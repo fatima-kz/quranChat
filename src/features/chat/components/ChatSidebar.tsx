@@ -148,7 +148,7 @@ export function ChatSidebar({ open, onClose, userId, activeId, onSelect }: Props
           }}
         >
           <TouchableOpacity
-            onPress={() => { haptic('light'); onClose(); router.push('/(tabs)/chat'); }}
+            onPress={() => { haptic('light'); onClose(); router.navigate({ pathname: '/(tabs)/chat', params: { reset: String(Date.now()) } }); }}
             activeOpacity={0.85}
             style={{
               flexDirection: 'row',

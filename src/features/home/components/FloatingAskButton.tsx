@@ -13,7 +13,7 @@ export function FloatingAskButton() {
     <Pressable
       onPress={() => {
         haptic('light');
-        router.push('/(tabs)/chat');
+        router.navigate('/(tabs)/chat');
       }}
       style={({ pressed }) => [
         styles.button,

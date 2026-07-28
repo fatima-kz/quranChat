@@ -1,16 +1,16 @@
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   FlatList,
   KeyboardAvoidingView,
   Pressable,
-  TouchableOpacity,
   ScrollView,
   StyleSheet,
+  TouchableOpacity,
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useQuery } from '@tanstack/react-query';
-import { useLocalSearchParams, router } from 'expo-router';
+import { useFocusEffect, useLocalSearchParams, router } from 'expo-router';
 import * as Clipboard from 'expo-clipboard';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -39,24 +39,27 @@ import { MessageInput } from '../components/MessageInput';
 import { TypingIndicator } from '../components/TypingIndicator';
 import { ChatSidebar } from '../components/ChatSidebar';
 
-type Props = {
-  conversationId?: string;
-};
-
 const ERROR_TEXT = "I couldn't reach the server. Please try again.";
 
-export default function ChatScreen({ conversationId }: Props) {
+function toStrParam(value: string | string[] | undefined): string | null {
+  if (!value) return null;
+  return Array.isArray(value) ? (value[0] ?? null) : value;
+}
+
+export default function ChatScreen() {
   const c = useThemeColors();
   const isDark = useThemeStore((s) => s.resolved) === 'dark';
   const haptic = useHaptics();
 
-  const params = useLocalSearchParams<{ id?: string }>();
-  const idParam = Array.isArray(params.id) ? params.id[0] : params.id;
-  const routeId = conversationId ?? idParam ?? null;
+  const params = useLocalSearchParams<{ id?: string; reset?: string }>();
+  const routeId = toStrParam(params.id);
+  const resetToken = toStrParam(params.reset);
 
+  // On the index route (no id), `createdId` tracks a conversation started here.
+  // On the [id] route, `routeId` is the source of truth.
   const [createdId, setCreatedId] = useState<string | null>(null);
-  const [forceNewChat, setForceNewChat] = useState(false);
-  const currentId = forceNewChat ? null : (routeId ?? createdId);
+  const activeConvId = routeId ?? createdId;
+
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [sending, setSending] = useState(false);
@@ -73,139 +76,180 @@ export default function ChatScreen({ conversationId }: Props) {
   const setPendingQuestion = useChatStore((s) => s.setPendingQuestion);
 
   const messagesQuery = useQuery({
-    queryKey: ['messages', currentId],
-    queryFn: () => listMessages(currentId as string),
-    enabled: !!currentId,
+    queryKey: ['messages', activeConvId],
+    queryFn: () => listMessages(activeConvId as string),
+    enabled: !!activeConvId,
   });
 
   const flatListRef = useRef<FlatList<Message>>(null);
-  const sendMessageRef = useRef<(text: string) => void>(() => {});
-
-  const [syncedQueryId, setSyncedQueryId] = useState<string | null>(null);
+  const messagesRef = useRef<Message[]>([]);
+  const sendingRef = useRef(false);
+  const justCreatedRef = useRef<string | null>(null);
+  const lastSyncedId = useRef<string | null>(null);
+  const lastResetToken = useRef<string | null>(null);
+  const processedPendingRef = useRef<string | null>(null);
 
   useEffect(() => {
-    if (messagesQuery.data && messagesQuery.data.length > 0) {
+    messagesRef.current = messages;
+  }, [messages]);
+
+  // Keep createdId clear whenever we are on a [id] route (URL is the truth there)
+  useEffect(() => {
+    if (routeId) setCreatedId(null);
+  }, [routeId]);
+
+  // Sync messages from the DB once per conversation id (never overwrite mid-send)
+  useEffect(() => {
+    const syncId = activeConvId;
+    if (syncId === lastSyncedId.current) return;
+    if (!syncId) {
+      lastSyncedId.current = null;
+      setMessages([]);
+      return;
+    }
+    // A conversation we just created — local state already holds the messages
+    if (syncId === justCreatedRef.current) {
+      lastSyncedId.current = syncId;
+      justCreatedRef.current = null;
+      return;
+    }
+    if (messagesQuery.data) {
+      lastSyncedId.current = syncId;
       setMessages(messagesQuery.data);
     }
-    setSyncedQueryId(currentId);
-  }, [messagesQuery.data, currentId]);
+  }, [activeConvId, messagesQuery.data]);
 
+  // "New chat" signal: reset the index state when navigated with a reset token
   useEffect(() => {
-    if (!currentId) {
-      setMessages([]);
-      setSyncedQueryId(null);
-      queryClient.removeQueries({ queryKey: ['messages'] });
-    }
-  }, [currentId]);
+    if (routeId) return;
+    if (!resetToken || resetToken === lastResetToken.current) return;
+    lastResetToken.current = resetToken;
+    setCreatedId(null);
+    setMessages([]);
+    setInput('');
+    lastSyncedId.current = null;
+    sendingRef.current = false;
+    setSending(false);
+    setTyping(false);
+    queryClient.removeQueries({ queryKey: ['messages'] });
+  }, [routeId, resetToken, setTyping]);
 
   useEffect(() => {
     flatListRef.current?.scrollToEnd({ animated: true });
   }, [messages.length, typing, sending]);
 
-  const showEmptyState = messages.length === 0 && !currentId;
-  const loadingConversation = !!currentId && messagesQuery.isLoading && messages.length === 0;
+  const showEmptyState = messages.length === 0 && !activeConvId;
+  const loadingConversation = !!activeConvId && messagesQuery.isLoading && messages.length === 0;
   const showTyping = typing && sending;
 
-  const sendMessage = async (raw: string, isPending = false) => {
-    recordActivity();
-    const text = raw.trim();
-    if (!text || !userId) return;
-    if (sending && !isPending) return;
+  const sendMessage = useCallback(
+    async (raw: string) => {
+      recordActivity();
+      const text = raw.trim();
+      if (!text || !userId || sendingRef.current) return;
 
-    haptic('light');
-    setSending(true);
-    setTyping(true);
-    setInput('');
+      haptic('light');
+      sendingRef.current = true;
+      setSending(true);
+      setTyping(true);
+      setInput('');
 
-    let convId = isPending ? null : currentId;
-    let createdNew = false;
+      let convId = activeConvId;
+      let createdNew = false;
 
-    try {
-      if (!convId) {
-        const conv = await createConversation(userId, truncate(text, 40));
-        convId = conv.id;
-        setCreatedId(conv.id);
-        setSyncedQueryId(conv.id);
-        setForceNewChat(false);
-        createdNew = true;
+      try {
+        if (!convId) {
+          const conv = await createConversation(userId, truncate(text, 40));
+          convId = conv.id;
+          createdNew = true;
+          justCreatedRef.current = conv.id;
+          lastSyncedId.current = conv.id;
+          setCreatedId(conv.id);
+        }
+
+        const userMessage: Message = {
+          id: `temp-u-${Date.now()}`,
+          conversation_id: convId,
+          role: 'user',
+          content: text,
+          citation: null,
+          created_at: new Date().toISOString(),
+        };
+        setMessages((prev) => [...prev, userMessage]);
+
+        const history = [
+          ...messagesRef.current
+            .filter((m) => m.role !== 'system')
+            .map((m) => ({ role: m.role, content: m.content })),
+          { role: 'user' as Role, content: text },
+        ];
+
+        const res = await sendChatMessage(history, {
+          name: profile?.full_name,
+          goal: profile?.goal,
+          topics: profile?.topics,
+        });
+
+        await insertMessage(convId, 'user', text, null);
+        await insertMessage(convId, 'assistant', res.content, res.citation);
+
+        const assistantMessage: Message = {
+          id: res.messageId || `temp-a-${Date.now()}`,
+          conversation_id: convId,
+          role: 'assistant',
+          content: res.content,
+          citation: res.citation,
+          created_at: new Date().toISOString(),
+        };
+        setMessages((prev) => [...prev, assistantMessage]);
+
+        queryClient.invalidateQueries({ queryKey: ['messages', convId] });
+      } catch {
+        const errorMessage: Message = {
+          id: `err-${Date.now()}`,
+          conversation_id: convId ?? '',
+          role: 'assistant',
+          content: ERROR_TEXT,
+          citation: null,
+          created_at: new Date().toISOString(),
+        };
+        setMessages((prev) => [...prev, errorMessage]);
+      } finally {
+        sendingRef.current = false;
+        setSending(false);
+        setTyping(false);
+        if (createdNew && userId) {
+          queryClient.invalidateQueries({ queryKey: ['conversations', userId] });
+        }
       }
+    },
+    [activeConvId, userId, profile, recordActivity, haptic, setTyping],
+  );
 
-      const userMessage: Message = {
-        id: `temp-u-${Date.now()}`,
-        conversation_id: convId,
-        role: 'user',
-        content: text,
-        citation: null,
-        created_at: new Date().toISOString(),
-      };
-      setMessages(isPending ? [userMessage] : (prev) => [...prev, userMessage]);
-
-      const history = isPending
-        ? [{ role: 'user' as Role, content: text }]
-        : [
-            ...messages
-              .filter((m) => m.role !== 'system')
-              .map((m) => ({ role: m.role, content: m.content })),
-            { role: 'user' as Role, content: text },
-          ];
-
-      const res = await sendChatMessage(history, {
-        name: profile?.full_name,
-        goal: profile?.goal,
-        topics: profile?.topics,
-      });
-
-      await insertMessage(convId, 'user', text, null);
-      await insertMessage(convId, 'assistant', res.content, res.citation);
-
-      const assistantMessage: Message = {
-        id: res.messageId || `temp-a-${Date.now()}`,
-        conversation_id: convId,
-        role: 'assistant',
-        content: res.content,
-        citation: res.citation,
-        created_at: new Date().toISOString(),
-      };
-      setMessages((prev) => [...prev, assistantMessage]);
-    } catch {
-      const errorMessage: Message = {
-        id: `err-${Date.now()}`,
-        conversation_id: convId ?? '',
-        role: 'assistant',
-        content: ERROR_TEXT,
-        citation: null,
-        created_at: new Date().toISOString(),
-      };
-      setMessages((prev) => [...prev, errorMessage]);
-    } finally {
-      setSending(false);
-      setTyping(false);
-      if (createdNew && userId) {
-        queryClient.invalidateQueries({ queryKey: ['conversations', userId] });
-      }
-    }
-  };
-
-  const lastProcessedQuestion = useChatStore((s) => s.lastProcessedQuestion);
-  const setLastProcessedQuestion = useChatStore((s) => s.setLastProcessedQuestion);
-
-  useEffect(() => {
-    if (pendingQuestion && pendingQuestion !== lastProcessedQuestion) {
-      setLastProcessedQuestion(pendingQuestion);
-      const q = pendingQuestion;
+  // Consume a pending question asked from another tab — only on the new-chat index
+  useFocusEffect(
+    useCallback(() => {
+      if (routeId) return; // only the index (new chat) handles pending questions
+      if (!pendingQuestion) return;
+      if (pendingQuestion.id === processedPendingRef.current) return;
+      processedPendingRef.current = pendingQuestion.id;
+      const q = pendingQuestion.text;
+      // Clear synchronously so no other mounted ChatScreen can reprocess it
       setPendingQuestion(null);
 
-      setForceNewChat(true);
-      setMessages([]);
+      // Reset to a fresh new chat before sending
       setCreatedId(null);
-      setSyncedQueryId(null);
+      setMessages([]);
+      setInput('');
+      lastSyncedId.current = null;
+      sendingRef.current = false;
       setSending(false);
       setTyping(false);
       queryClient.removeQueries({ queryKey: ['messages'] });
 
-      sendMessage(q, true);
-    }
-  }, [pendingQuestion, lastProcessedQuestion, setLastProcessedQuestion, setPendingQuestion]);
+      sendMessage(q);
+    }, [routeId, pendingQuestion, setPendingQuestion, setTyping, sendMessage]),
+  );
 
   const handleCopy = async (content: string) => {
     await Clipboard.setStringAsync(content);
@@ -223,17 +267,21 @@ export default function ChatScreen({ conversationId }: Props) {
     }
   };
 
-  const handleSelectConversation = (id: string, title: string) => {
+  const handleSelectConversation = (convId: string) => {
     setSidebarOpen(false);
-    setForceNewChat(false);
     setMessages([]);
-    setSyncedQueryId(null);
-    setCreatedId(id);
-    if (idParam) {
-      router.setParams({ id });
+    lastSyncedId.current = null;
+    setCreatedId(null);
+    if (routeId) {
+      router.setParams({ id: convId });
     } else {
-      router.push({ pathname: '/(tabs)/chat/[id]', params: { id } });
+      router.push({ pathname: '/(tabs)/chat/[id]', params: { id: convId } });
     }
+  };
+
+  const handleNewChat = () => {
+    haptic('light');
+    router.navigate({ pathname: '/(tabs)/chat', params: { reset: String(Date.now()) } });
   };
 
   return (
@@ -242,7 +290,7 @@ export default function ChatScreen({ conversationId }: Props) {
         open={sidebarOpen}
         onClose={() => setSidebarOpen(false)}
         userId={userId ?? ''}
-        activeId={currentId}
+        activeId={activeConvId}
         onSelect={handleSelectConversation}
       />
 
@@ -266,7 +314,7 @@ export default function ChatScreen({ conversationId }: Props) {
           <Pressable
             hitSlop={12}
             style={styles.iconBtn}
-            onPress={() => { haptic('light'); setMessages([]); setCreatedId(null); setForceNewChat(true); setSyncedQueryId(null); queryClient.removeQueries({ queryKey: ['messages'] }); }}
+            onPress={handleNewChat}
           >
             <Ionicons name="create-outline" size={24} color={c.text} />
           </Pressable>
@@ -361,9 +409,9 @@ function EmptyState({
             key={q}
             style={[
               styles.chip,
-              { 
-                backgroundColor: isDark ? c.surfaceMuted : '#E6F4EE', 
-                borderColor: isDark ? c.border : '#C8E6D8' 
+              {
+                backgroundColor: isDark ? c.surfaceMuted : '#E6F4EE',
+                borderColor: isDark ? c.border : '#C8E6D8',
               }
             ]}
           >

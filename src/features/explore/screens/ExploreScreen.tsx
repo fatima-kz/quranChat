@@ -10,7 +10,7 @@ import { useThemeColors } from '@/hooks/useTheme';
 import { useThemeStore } from '@/store/theme.store';
 import { useHaptics } from '@/hooks/useHaptics';
 import { useQuranStore } from '@/store/quran.store';
-import { useChatStore } from '@/store/chat.store';
+import { useAskQuestion } from '@/features/home/hooks/useAskQuestion';
 import { getHijriDate } from '@/utils/hijri';
 import { getExploreTopics } from '@/features/explore/constants';
 import { useAuthStore } from '@/store/auth.store';
@@ -23,12 +23,7 @@ export default function ExploreScreen() {
   const hijriDate = getHijriDate();
   const profile = useAuthStore((s) => s.profile);
   const exploreTopics = getExploreTopics(profile?.topics ?? null);
-
-  const askQuestion = (question: string) => {
-    haptic('light');
-    useChatStore.getState().setPendingQuestion(question);
-    router.push('/(tabs)/chat');
-  };
+  const ask = useAskQuestion();
 
   const handleHeroTap = () => {
     haptic('light');
@@ -50,7 +45,7 @@ export default function ExploreScreen() {
   };
 
   const handleTopicTap = (topicQuery: string) => {
-    askQuestion(`What does the Qur'an say about ${topicQuery}?`);
+    ask(`What does the Qur'an say about ${topicQuery}?`);
   };
 
   return (

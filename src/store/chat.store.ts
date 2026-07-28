@@ -2,24 +2,26 @@ import { create } from 'zustand';
 
 import type { Message } from '@/types';
 
+type PendingQuestion = {
+  id: string;
+  text: string;
+};
+
 type ChatState = {
   pendingMessages: Record<string, Message[]>;
   typing: boolean;
-  pendingQuestion: string | null;
-  lastProcessedQuestion: string | null;
+  pendingQuestion: PendingQuestion | null;
   setTyping: (typing: boolean) => void;
   setPending: (conversationId: string, messages: Message[]) => void;
   clearPending: (conversationId: string) => void;
-  setPendingQuestion: (q: string | null) => void;
-  setLastProcessedQuestion: (q: string | null) => void;
+  setPendingQuestion: (q: PendingQuestion | null) => void;
 };
 
 export const useChatStore = create<ChatState>((set) => ({
   pendingMessages: {},
   typing: false,
   pendingQuestion: null,
-  lastProcessedQuestion: null,
-  setTyping: (typing) => set({ typing }),
+  setTyping: (typing) => set((s) => (s.typing === typing ? s : { typing })),
   setPending: (conversationId, messages) =>
     set((s) => ({ pendingMessages: { ...s.pendingMessages, [conversationId]: messages } })),
   clearPending: (conversationId) =>
@@ -29,5 +31,11 @@ export const useChatStore = create<ChatState>((set) => ({
       return { pendingMessages: next };
     }),
   setPendingQuestion: (pendingQuestion) => set({ pendingQuestion }),
-  setLastProcessedQuestion: (lastProcessedQuestion) => set({ lastProcessedQuestion }),
 }));
+
+export function askQuestion(text: string) {
+  useChatStore.getState().setPendingQuestion({
+    id: `${Date.now()}-${Math.random().toString(36).slice(2)}`,
+    text,
+  });
+}

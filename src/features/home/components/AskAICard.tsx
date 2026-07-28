@@ -1,24 +1,20 @@
 import { useState } from 'react';
 import { View, TextInput, Pressable, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { router } from 'expo-router';
 
 import { useThemeColors } from '@/hooks/useTheme';
-import { useHaptics } from '@/hooks/useHaptics';
-import { useChatStore } from '@/store/chat.store';
+import { useAskQuestion } from '@/features/home/hooks/useAskQuestion';
 
 export function AskAICard() {
   const c = useThemeColors();
-  const haptic = useHaptics();
+  const ask = useAskQuestion();
   const [value, setValue] = useState('');
 
   const submit = () => {
     const text = value.trim();
     if (!text) return;
-    haptic('light');
-    useChatStore.getState().setPendingQuestion(text);
     setValue('');
-    router.push('/(tabs)/chat');
+    ask(text);
   };
 
   return (

@@ -1,24 +1,20 @@
 import { useMemo } from 'react';
 import { View, Pressable, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { router } from 'expo-router';
 
 import { CText } from '@/components/ui';
 import { useThemeColors } from '@/hooks/useTheme';
-import { useHaptics } from '@/hooks/useHaptics';
-import { useChatStore } from '@/store/chat.store';
+import { useAskQuestion } from '@/features/home/hooks/useAskQuestion';
 import { getPersonalizedQuestions } from '@/constants/prompts';
 
 export function SuggestedQuestions({ userTopics }: { userTopics?: string[] | null }) {
   const c = useThemeColors();
-  const haptic = useHaptics();
+  const ask = useAskQuestion();
 
   const questions = useMemo(() => getPersonalizedQuestions(userTopics), [userTopics]);
 
   const open = (q: string) => {
-    haptic('selection');
-    useChatStore.getState().setPendingQuestion(q);
-    router.push('/(tabs)/chat');
+    ask(q);
   };
 
   const icons = ['book', 'heart', 'person', 'help-circle'];

@@ -8,7 +8,7 @@ import { CText } from '@/components/ui';
 import { useThemeColors } from '@/hooks/useTheme';
 import { useThemeStore } from '@/store/theme.store';
 import { useHaptics } from '@/hooks/useHaptics';
-import { useChatStore } from '@/store/chat.store';
+import { useAskQuestion } from '@/features/home/hooks/useAskQuestion';
 
 type Prophet = {
   id: string;
@@ -48,6 +48,7 @@ export default function ProphetsScreen() {
   const c = useThemeColors();
   const isDark = useThemeStore((s) => s.resolved) === 'dark';
   const haptic = useHaptics();
+  const ask = useAskQuestion();
 
   const [search, setSearch] = useState('');
   const [selectedProphet, setSelectedProphet] = useState<Prophet | null>(null);
@@ -67,9 +68,8 @@ export default function ProphetsScreen() {
     if (!selectedProphet) return;
     haptic('light');
     const question = `Tell me about Prophet ${selectedProphet.name} and his story in the Qur'an`;
-    useChatStore.getState().setPendingQuestion(question);
     setSelectedProphet(null);
-    router.navigate('/(tabs)/chat');
+    ask(question);
   };
 
   return (
@@ -108,7 +108,7 @@ export default function ProphetsScreen() {
             DAILY WISDOM
           </CText>
           <CText serif style={{ color: '#fff', fontSize: 20, lineHeight: 28, fontStyle: 'italic', marginBottom: 12 }}>
-            "Indeed, in their stories, there is a lesson for people of understanding."
+            {'"Indeed, in their stories, there is a lesson for people of understanding."'}
           </CText>
           <CText style={{ color: '#A7F3D0', fontSize: 13 }}>
             — Surah Yusuf, 12:111
@@ -143,7 +143,7 @@ export default function ProphetsScreen() {
           ))}
           {filteredProphets.length === 0 && (
             <View style={{ padding: 40, alignItems: 'center' }}>
-              <CText muted>No prophets found for "{search}"</CText>
+              <CText muted>{`No prophets found for "${search}"`}</CText>
             </View>
           )}
         </View>

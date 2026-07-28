@@ -7,7 +7,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { CText } from '@/components/ui';
 import { useThemeColors } from '@/hooks/useTheme';
 import { useHaptics } from '@/hooks/useHaptics';
-import { useChatStore } from '@/store/chat.store';
+import { useAskQuestion } from '@/features/home/hooks/useAskQuestion';
 import { allSurahs, loadSurahData } from '@/features/quran/api/quran-data';
 
 type SearchResult = {
@@ -37,6 +37,7 @@ function getCachedSurah(id: number) {
 export function SearchModal() {
   const c = useThemeColors();
   const haptic = useHaptics();
+  const ask = useAskQuestion();
   const [query, setQuery] = useState('');
 
   const results = useMemo<SearchResult[]>(() => {
@@ -105,10 +106,9 @@ export function SearchModal() {
     } else if (result.type === 'verse' && result.surahId && result.verseId) {
       router.push({ pathname: '/(tabs)/quran/[id]' as any, params: { id: String(result.surahId), verse: String(result.verseId) } });
     } else if (result.type === 'topic' && result.topic) {
-      useChatStore.getState().setPendingQuestion(`What does the Qur'an say about ${result.topic}?`);
-      router.push('/(tabs)/chat');
+      ask(`What does the Qur'an say about ${result.topic}?`);
     }
-  }, [haptic]);
+  }, [haptic, ask]);
 
   const renderResult = useCallback(({ item }: { item: SearchResult }) => (
     <Pressable
